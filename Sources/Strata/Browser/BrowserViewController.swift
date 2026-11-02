@@ -74,14 +74,51 @@ final class BrowserViewController: NSViewController {
         fitColumnsToWidth()
     }
 
-    /// In a narrow list (a dual-pane side, a small window) Kind, then Date and Where, give up width down to their
-    /// minimums before the columns run off the edge; Name keeps the rest.
+    private static let givesWayFirst: [NSUserInterfaceItemIdentifier] = [
+        .kind, .tags, .location, .fileExtension, .dimensions, .width, .height, .duration, .added, .created, .modified, .size,
+    ]
+    private static let roomForName: CGFloat = 200
+
+    /// The columns that leave a list `width` wide, least needed first, so what stays fits at its minimums with room to
+    /// read names. Name never leaves.
+    static func columnsLeftOut(of minimums: [NSUserInterfaceItemIdentifier: CGFloat], width: CGFloat,
+                               spacing: CGFloat) -> Set<NSUserInterfaceItemIdentifier> {
+        var staying = minimums.filter { $0.key != .name }
+        var leftOut: Set<NSUserInterfaceItemIdentifier> = []
+        for id in givesWayFirst where staying[id] != nil {
+            guard staying.values.reduce(roomForName, +) + spacing * CGFloat(staying.count + 2) > width else { break }
+            staying[id] = nil
+            leftOut.insert(id)
+        }
+        return leftOut
+    }
+
+    /// A column that leaves comes back when the list widens: this never touches what View Options saves. Returns
+    /// whether a column came or went.
+    @discardableResult
+    private func leaveOutColumnsThatDontFit() -> Bool {
+        let width = scrollView.contentView.bounds.width
+        guard width > 0 else { return false }
+        let hidden = preferences.hiddenListColumns
+        let wanted = outlineView.tableColumns.filter {
+            $0.identifier == .name || ($0.identifier == .location ? isShowingResults : !hidden.contains($0.identifier.rawValue))
+        }
+        let leftOut = Self.columnsLeftOut(of: Dictionary(uniqueKeysWithValues: wanted.map { ($0.identifier, $0.minWidth) }),
+                                          width: width, spacing: outlineView.intercellSpacing.width)
+        let changing = wanted.filter { $0.isHidden != leftOut.contains($0.identifier) }
+        changing.forEach { $0.isHidden.toggle() }
+        return !changing.isEmpty
+    }
+
+    /// In a narrow list (a dual-pane side, a small window) columns leave first, then Kind, then Date and Where, give up
+    /// width down to their minimums before the columns run off the edge; Name keeps the rest.
     private func fitColumnsToWidth() {
+        if leaveOutColumnsThatDontFit() { fitNameColumn() }
         let visible = outlineView.tableColumns.filter { !$0.isHidden }
         let spacing = outlineView.intercellSpacing.width * CGFloat(visible.count + 1)
         var excess = visible.reduce(0) { $0 + $1.width } + spacing - scrollView.contentView.bounds.width
         guard excess > 1 else { return }
-        for id in [NSUserInterfaceItemIdentifier.kind, .tags, .location, .fileExtension, .dimensions, .width, .height, .duration, .added, .created, .modified, .name] {
+        for id in Self.givesWayFirst + [.name] {
             guard excess > 0, let column = outlineView.tableColumn(withIdentifier: id), !column.isHidden else { continue }
             let give = min(excess, column.width - column.minWidth)
             guard give > 0 else { continue }
@@ -92,6 +129,7 @@ final class BrowserViewController: NSViewController {
 
     /// Name gets whatever the other visible columns leave (it's the column that absorbs width changes).
     func fitNameColumn() {
+        leaveOutColumnsThatDontFit()
         guard let name = outlineView.tableColumn(withIdentifier: .name) else { return }
         let others = outlineView.tableColumns.filter { $0 !== name && !$0.isHidden }
         let spacing = outlineView.intercellSpacing.width * CGFloat(others.count + 1)
@@ -270,7 +308,7 @@ final class BrowserViewController: NSViewController {
     /// Name, then each list column, then Where (shown with results).
     private func addColumns() {
         let ov = outlineView
-        addColumn(.name, String(localized: "Name"), width: 340, min: 160, ascending: true)
+        addColumn(.name, String(localized: "Name"), width: 340, min: 80, ascending: true)
         for column in ListColumn.allCases {
             addColumn(NSUserInterfaceItemIdentifier(column.rawValue), column.title, width: column.preferredWidth,
                       min: column.minWidth, ascending: column.ascending, alignment: column.alignment)
