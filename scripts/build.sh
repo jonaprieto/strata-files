@@ -77,7 +77,9 @@ identity="${STRATA_SIGNING_IDENTITY:-}"
 if [[ -z "$identity" ]]; then
   identity=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)
 fi
-sign=(--force --options runtime --sign "${identity:--}")
+sign=(--force --sign "${identity:--}")
+# Hardened runtime needs a team ID: with an ad-hoc signature it refuses to load Sparkle.
+if [[ -n "$identity" ]]; then sign+=(--options runtime); fi
 if [[ -n "${STRATA_KEYCHAIN:-}" ]]; then sign+=(--keychain "$STRATA_KEYCHAIN"); fi
 if [[ "${STRATA_TIMESTAMP:-}" == 1 && -n "$identity" ]]; then sign+=(--timestamp); fi
 # Inside out: Sparkle's helpers, then the framework, the command-line helper, the archive service, and the bundle that
