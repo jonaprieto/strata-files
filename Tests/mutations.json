@@ -4948,13 +4948,6 @@
     "tests": "BrowserListingTests/aBigFolderIsFilteredAsTypedAwayFromTheMainThread"
   },
   {
-    "file": "Strata/Browser/BrowserViewController+Modes.swift",
-    "find": "        case .escape:\n            guard !typed.isEmpty else { return false }\n",
-    "replace": "        case .escape:\n",
-    "rule": "Type-to-filter: Esc with nothing typed is taken from the window",
-    "tests": "BrowserListingTests/everyViewTypesDeletesAndClearsTheFilterAlike"
-  },
-  {
     "file": "Strata/Browser/BrowserViewController.swift",
     "find": "        navigationRevision += 1\n        services.previews.invalidate(owner: self)",
     "replace": "        navigationRevision += 1\n        // Keep a preview after its pane navigates.",
@@ -9729,5 +9722,26 @@
     "replace": "        if isActivelyUpdating, isWithinIndexedScope(path) {\n            return .pending\n        }",
     "rule": "Unindexed paths under already-read parents return unindexed during background updates",
     "tests": "FolderSizerCancellationTests/unindexedPathsUnderAlreadyReadParentsReturnUnindexedDuringUpdating"
+  },
+  {
+    "file": "Strata/Browser/BrowserViewController+Modes.swift",
+    "find": "            filtering.awaitsText = false\n            guard !typed.isEmpty else { return false }\n",
+    "replace": "            filtering.awaitsText = false\n",
+    "rule": "Type-to-filter: Esc with nothing typed is taken from the window",
+    "tests": "BrowserListingTests/everyViewTypesDeletesAndClearsTheFilterAlike"
+  },
+  {
+    "file": "Strata/Browser/BrowserViewController+Modes.swift",
+    "find": "if preferences.diredKeys, typed.isEmpty, !filtering.awaitsText {",
+    "replace": "if typed.isEmpty, !filtering.awaitsText {",
+    "rule": "Dired keys: letters run commands while the setting is off",
+    "tests": "DiredKeysTests/lettersFilterWhileDiredKeysAreOff"
+  },
+  {
+    "file": "Strata/Window/BrowserWindowController+BrowserDelegate.swift",
+    "find": "guard browser === self.browser, validateCommand(command, item: item), let target",
+    "replace": "guard validateCommand(command, item: item), let target",
+    "rule": "Dired keys: a key from another pane runs on the focused pane's selection",
+    "tests": "DiredKeysTests/aKeyFromThePaneWithoutTheFocusChangesNothing"
   }
 ]

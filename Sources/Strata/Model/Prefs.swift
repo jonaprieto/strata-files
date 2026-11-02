@@ -67,6 +67,7 @@ package final class Prefs: PreviewTextSettings {
         static let foldersFirst = "foldersFirst"
         static let lastLocation = "lastLocation"
         static let returnOpens = "returnOpens"
+        static let diredKeys = "diredKeys"
         static let terminal = "terminalApp"
         static let newWindowsAtHome = "newWindowsAtHome"
         static let newWindowLocation = "newWindowLocation"
@@ -152,6 +153,12 @@ package final class Prefs: PreviewTextSettings {
     package var returnOpens: Bool {
         get { defaults.bool(forKey: Key.returnOpens) }
         set { defaults.set(newValue, forKey: Key.returnOpens) }
+    }
+
+    /// Plain letters run commands, as in Emacs's Dired, instead of filtering.
+    package var diredKeys: Bool {
+        get { defaults.bool(forKey: Key.diredKeys) }
+        set { defaults.set(newValue, forKey: Key.diredKeys) }
     }
 
     /// Bundle id of the terminal for "Open in Terminal"; nil picks the first installed of Ghostty, iTerm, Warp, Terminal.

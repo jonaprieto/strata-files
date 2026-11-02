@@ -189,17 +189,23 @@ extension BrowserViewController: FileCollectionViewDelegate {
         handle(key)
     }
 
-    /// The same keys in every view: typing filters, Return renames (or opens), Space previews, Esc clears the filter.
-    /// False when the key isn't the pane's to handle.
+    /// The same keys in every view: typing filters (with Dired keys, letters run commands and / starts a filter), Return
+    /// renames (or opens), Space previews, Esc clears the filter. False when the key isn't the pane's to handle.
     func handle(_ key: FileViewKey) -> Bool {
         let typed = filtering.typed
         switch key {
         case .type(let text):
-            setFilter(typed + text)
+            if preferences.diredKeys, typed.isEmpty, !filtering.awaitsText {
+                runDiredKey(text)
+            } else {
+                filtering.awaitsText = false
+                setFilter(typed + text)
+            }
         case .backspace:
             guard !typed.isEmpty else { return false }
             setFilter(String(typed.dropLast()))
         case .escape:
+            filtering.awaitsText = false
             guard !typed.isEmpty else { return false }
             setFilter("")
         case .returnKey:
@@ -212,6 +218,31 @@ extension BrowserViewController: FileCollectionViewDelegate {
             return onTab?() ?? false
         }
         return true
+    }
+
+    private func runDiredKey(_ text: String) {
+        switch DiredKey(text) {
+        case .down: pressArrow(KeyCode.downArrow, NSDownArrowFunctionKey)
+        case .up: pressArrow(KeyCode.upArrow, NSUpArrowFunctionKey)
+        case .left: movesSideways ? pressArrow(KeyCode.leftArrow, NSLeftArrowFunctionKey) : delegate?.browser(self, run: .goToEnclosingFolder)
+        case .right: movesSideways ? pressArrow(KeyCode.rightArrow, NSRightArrowFunctionKey) : delegate?.browser(self, run: .openSelection)
+        case .filter: filtering.awaitsText = true
+        case .run(let command): delegate?.browser(self, run: command)
+        case nil: break
+        }
+    }
+
+    /// In a list, h and l leave and enter folders instead, as sideways would only fold rows.
+    private var movesSideways: Bool { [.grid, .columns, .gallery].contains(effectiveMode) }
+
+    /// Goes to the view holding the keyboard, which moves through its items its own way (a deeper column, a grid).
+    private func pressArrow(_ key: UInt16, _ function: Int) {
+        guard let window = view.window, let scalar = UnicodeScalar(function) else { return }
+        let arrow = String(Character(scalar))
+        guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.function, .numericPad],
+                                           timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: arrow,
+                                           charactersIgnoringModifiers: arrow, isARepeat: false, keyCode: key) else { return }
+        window.firstResponder?.keyDown(with: event)
     }
 
     func fileView(_ view: NSViewController, rename entry: FileEntry, to name: String) {

@@ -146,6 +146,9 @@ private struct GeneralSettings: View {
                     Text("Renames the selection (like Finder)").tag(false)
                     Text("Opens the selection").tag(true)
                 }.settingAnchor(.returnKey)
+                PrefToggle(title: "Dired keys",
+                           caption: "Letters run commands, as in Emacs: n and p or j and k move, h and l go out and in, f opens, ^ goes up, g reloads, R renames, + makes a folder, C copies to the other pane, D moves to Trash. / filters.",
+                           get: { Prefs.shared.diredKeys }, set: { Prefs.shared.diredKeys = $0 })
                 NewWindowFolderSettings(preferences: .shared).settingAnchor(.newWindowFolder)
             }
             Section("New Files") {
