@@ -13,6 +13,8 @@ import Foundation
     private var deferredText: String?
     /// A big folder's rows being matched against what was typed, away from the main thread, and that text.
     private(set) var matching: (text: String, task: Task<Void, Never>)?
+    /// With Dired keys, / was pressed: the next letter starts a filter instead of running a command.
+    var awaitsText = false
 
     /// `show`: the rows now show the matches for this text.
     init(listing: BrowserListing, canPublish: @escaping () -> Bool = { true }, show: @escaping (String, Bool) -> Void) {
@@ -76,6 +78,7 @@ import Foundation
 
     /// No filter at all, without showing anything: the rows are about to change (another folder, results).
     func clear() {
+        awaitsText = false
         cancel()
         listing.setFilter("")
     }

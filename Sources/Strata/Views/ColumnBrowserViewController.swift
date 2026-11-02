@@ -399,8 +399,8 @@ final class ColumnBrowserViewController: NSViewController, FileCollectionControl
     }
 
     func handleKey(_ key: FileViewKey, in pane: ColumnPane) -> Bool {
-        // Filtering applies to the browser's folder only; deeper columns use type-select.
-        if case .type = key, !pane.isRoot { return false }
+        // Filtering applies to the browser's folder only; deeper columns use type-select, unless letters are Dired keys.
+        if case .type = key, !pane.isRoot, !preferences.diredKeys { return false }
         if key == .backspace, !pane.isRoot { return false }
         if fileDelegate?.fileView(self, handle: key) == true { return true }
         if key == .returnKey {

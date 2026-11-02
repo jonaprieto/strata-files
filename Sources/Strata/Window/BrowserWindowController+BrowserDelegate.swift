@@ -30,6 +30,12 @@ extension BrowserWindowController: BrowserViewControllerDelegate {
         navigate(to: url.deletingLastPathComponent(), select: url)
     }
 
+    func browser(_ browser: BrowserViewController, run command: StrataCommand) {
+        let item = command.menuItem()
+        guard browser === self.browser, validateCommand(command, item: item), let target = commandTarget(command) else { return }
+        NSApp.sendAction(command.action, to: target, from: item)
+    }
+
     /// The folders every window's panes show.
     static func foldersShown() -> Set<String> {
         var shown: Set<String> = []

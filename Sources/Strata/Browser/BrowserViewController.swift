@@ -18,6 +18,13 @@ protocol BrowserViewControllerDelegate: AnyObject {
     /// An archive is being unpacked to browse (nil when done); `stop` cancels it.
     func browser(_ browser: BrowserViewController, openingArchive archive: URL?, stop: (() -> Void)?)
     func browser(_ browser: BrowserViewController, reveal url: URL)
+    /// A Dired key asks for what a menu item would do.
+    func browser(_ browser: BrowserViewController, run command: StrataCommand)
+}
+
+extension BrowserViewControllerDelegate {
+    /// Only a window runs commands; a delegate that only watches a browser ignores Dired's.
+    func browser(_ browser: BrowserViewController, run command: StrataCommand) {}
 }
 
 extension NSUserInterfaceItemIdentifier {
