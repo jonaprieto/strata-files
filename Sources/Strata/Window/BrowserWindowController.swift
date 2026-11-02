@@ -85,7 +85,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
         window.tabbingIdentifier = "dev.strata.browser"
-        window.minSize = NSSize(width: 760, height: 420)
+        window.minSize = NSSize(width: 320, height: 300)
         window.isRestorable = false
         return window
     }

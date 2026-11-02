@@ -19,10 +19,10 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         inspectorItem = NSSplitViewItem(inspectorWithViewController: inspector)
         super.init(nibName: nil, bundle: nil)
 
-        // The minimums (180 + 320 + 240) fit inside the window's minimum width (760), so the panes never make the
+        // The minimums (100 + 120 + 100) fit inside the window's minimum width (320), so the panes never make the
         // window resize itself: a collapsed inspector peeking out in a narrow window did, and crashed AppKit mid-peek.
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebar)
-        sidebarItem.minimumThickness = 180
+        sidebarItem.minimumThickness = 100
         sidebarItem.maximumThickness = 320
         sidebarItem.addBottomAlignedAccessoryViewController(SidebarFooterController())
 
@@ -42,14 +42,14 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
             panes.view.bottomAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.bottomAnchor),
         ])
         let contentItem = NSSplitViewItem(viewController: content)
-        contentItem.minimumThickness = 320
+        contentItem.minimumThickness = 120
         contentItem.addBottomAlignedAccessoryViewController(status)
         scopeBar.isHidden = true
         contentItem.addTopAlignedAccessoryViewController(scopeBar)
         noticeBar.isHidden = true
         contentItem.addTopAlignedAccessoryViewController(noticeBar)
 
-        inspectorItem.minimumThickness = 240
+        inspectorItem.minimumThickness = 100
         inspectorItem.maximumThickness = 440
 
         addSplitViewItem(sidebarItem)

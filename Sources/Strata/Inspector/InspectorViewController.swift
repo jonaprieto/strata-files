@@ -204,8 +204,14 @@ final class InspectorViewController: NSViewController {
         scroll.autohidesScrollers = true
         scroll.documentView = document
 
+        // In a very narrow Inspector the document stays as wide as its contents need and clips. Stronger than a long
+        // path's wish to widen it, weaker than the window's size, so it never holds the window wider than its minimum.
+        let fillsScroll = document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor)
+        fillsScroll.priority = .init(300)
+
         NSLayoutConstraint.activate([
-            document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+            fillsScroll,
+            document.widthAnchor.constraint(greaterThanOrEqualTo: scroll.contentView.widthAnchor),
             stack.leadingAnchor.constraint(equalTo: document.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: document.trailingAnchor),
             stack.topAnchor.constraint(equalTo: document.topAnchor),
