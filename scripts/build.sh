@@ -54,6 +54,7 @@ cp -R "$bins/Strata_StrataPreviews.bundle" "$app/Contents/Resources/Strata_Strat
 python3 scripts/check-app-resources.py "$app" "$bins/StrataResourceCheck" Tests/PreviewDocuments/07-Issue36-Mermaid.md
 # Credits for the third-party software Strata includes or builds on (Sparkle, libarchive) travel with the app.
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
+cp LICENSE "$app/Contents/Resources/LICENSE"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 if [[ -n "${STRATA_VERSION:-}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $STRATA_VERSION" "$app/Contents/Info.plist"
