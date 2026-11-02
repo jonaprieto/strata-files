@@ -307,7 +307,7 @@ final class PaneContainerViewController: NSSplitViewController {
 
     func add(_ host: PaneHostViewController) {
         let item = NSSplitViewItem(viewController: host)
-        item.minimumThickness = 300
+        item.minimumThickness = 100
         addSplitViewItem(item)
         // A new second pane starts as an even split, not squeezed to its minimum width.
         guard splitViewItems.count == 2 else { return }

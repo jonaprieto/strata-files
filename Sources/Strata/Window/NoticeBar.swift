@@ -24,6 +24,8 @@ final class NoticeBar: NSSplitViewItemAccessoryViewController {
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
         let stack = NSStackView(views: [icon, label, spacer, button])
         stack.spacing = 8
+        // Laid out even while hidden, so it clips rather than hold the pane (and the window) wider.
+        stack.setClippingResistancePriority(.defaultLow, for: .horizontal)
         view = ThemeAccessoryView.bar(holding: stack)
     }
 
