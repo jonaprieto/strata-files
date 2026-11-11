@@ -113,6 +113,9 @@ import Testing
         for command in [StrataCommand.moveToTrash, .renameSelection, .duplicate, .newFolder, .paste, .compress, .openSelection] {
             #expect(!browser.validateMenuItem(command.menuItem()), "\(command.title) stays on")
         }
+        let button = NSToolbarItem(itemIdentifier: BrowserToolbar.identifier(.toggleGitStatus))
+        #expect(owner.validateToolbarItem(button))
+        #expect(button.toolTip == String(localized: "Hide Git Status"))
         let toggle = StrataCommand.toggleGitStatus.menuItem()
         #expect(browser.validateMenuItem(toggle))
         #expect(toggle.title == String(localized: "Hide Git Status"))
