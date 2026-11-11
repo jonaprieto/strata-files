@@ -690,6 +690,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         split.inspector.stopPreviewing()
         stopClipboardMonitoring()
         panes.forEach { $0.stopBackgroundWork() }
+        split.terminal.stop()
         onClose?()
     }
 

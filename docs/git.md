@@ -86,6 +86,14 @@ commits, Escape cancels; the first line's length is shown against git's 50 and 7
 terminal fails with git's message instead. Fetch, pull and push are the only commands that may reach the network,
 using your own ssh agent and credential helpers.
 
+## Terminal drawer
+
+⌃⌘` (View ▸ Show Terminal) opens a terminal under the panes, started in the active pane's folder with your login
+shell; ⌃⌘` again hides it, and the same shell is there when it comes back. Drag its top edge to resize it. Files
+dropped on it are typed as quoted paths, and Go to Pane Folder types a `cd` to the active pane's folder; neither
+presses Return, so nothing runs until you do (a name holding a control character isn't typed at all). Open in
+Terminal (⌃⌘T) still opens Ghostty, iTerm, Warp or Terminal.
+
 ## Feedback and accessibility
 
 The header names the repository and branch, how far it is from its upstream, any merge or rebase in progress and the
