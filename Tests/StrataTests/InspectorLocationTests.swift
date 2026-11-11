@@ -334,4 +334,41 @@ struct InspectorLocationTests {
         #expect(await looks.look(url).name == "Tool")
         #expect(tree.snapshot() == ["Tool.app/", "Tool.app/Contents/", "other/"])
     }
+
+    /// In a narrow Inspector a value beside its 74-point label is a sliver that breaks dates letter by letter; there each
+    /// label sits above its value, which takes the whole width. Wide again, they sit side by side.
+    @Test func narrowRowsPutEachLabelAboveItsValue() {
+        let rows = InspectorRows()
+        let created = InspectorRows.text("7 November 2026 at 15:04")
+        rows.set([("Created", created), ("Size", InspectorRows.text("4 KB"))])
+        let host = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 400))
+        rows.translatesAutoresizingMaskIntoConstraints = false
+        host.addSubview(rows)
+        NSLayoutConstraint.activate([
+            rows.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            rows.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            rows.topAnchor.constraint(equalTo: host.topAnchor),
+        ])
+        func label(_ title: String) -> NSView? {
+            func all(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(all) }
+            return all(rows).compactMap { $0 as? NSTextField }.first { $0.stringValue == title }
+        }
+        for (width, stacked) in [(400.0, false), (140.0, true), (400.0, false), (140.0, true)] {
+            host.setFrameSize(NSSize(width: width, height: 400))
+            host.layoutSubtreeIfNeeded()
+            let value = created.convert(created.bounds, to: host)
+            guard let title = label("Created").map({ $0.convert($0.bounds, to: host) }) else { Issue.record("no label"); continue }
+            #expect(rows.isStacked == stacked, "width \(width)")
+            if stacked {
+                #expect(abs(value.minX - title.minX) <= 1 && value.width >= width - 2, "width \(width): \(value)")
+                #expect(value.maxY <= title.minY + 0.5 || value.minY >= title.maxY - 0.5, "The label is on a line of its own.")
+            } else {
+                #expect(value.minX >= InspectorRows.labelWidth, "width \(width): \(value)")
+            }
+            #expect(rows.shown.first?.value === created)
+        }
+        // A refresh with the same rows keeps them as they are, stacked.
+        rows.set([("Created", InspectorRows.text("8 November 2026 at 09:00")), ("Size", InspectorRows.text("4 KB"))])
+        #expect(rows.shown.first?.value === created && created.stringValue == "8 November 2026 at 09:00")
+    }
 }
