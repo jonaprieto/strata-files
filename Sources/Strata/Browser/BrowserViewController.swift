@@ -873,6 +873,9 @@ final class BrowserViewController: NSViewController {
                 ? String(localized: "\(selected.count) selected, \(Format.bytes(known.saturatingSum))", comment: "plural")
                 : String(localized: "\(selected.count) selected", comment: "plural"))
         }
+        if !isShowingResults, let directory, let git = services.git.snapshot(containing: directory) {
+            parts.append(git.statusBarText)
+        }
         if let volumeSpace, !isShowingResults {
             parts.append(String(localized: "\(Format.bytes(volumeSpace.free)) free", comment: "Status bar: physically free space on the folder’s disk"))
         }

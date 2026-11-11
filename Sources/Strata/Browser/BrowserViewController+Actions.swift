@@ -424,6 +424,8 @@ extension BrowserViewController {
         guard let root = notification.userInfo?["root"] as? URL, let directory,
               directory.path == root.path || directory.path.hasPrefix(root.path + "/") else { return }
         reloadVisibleCells(reconfigure: false)
+        // The status bar names the branch and its changes.
+        delegate?.browserContentDidChange(self)
     }
 
     /// Reads the shown folder's tags again (Finder may have changed them while Strata was in the background).
