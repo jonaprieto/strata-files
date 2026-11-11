@@ -113,10 +113,12 @@ using your own ssh agent and credential helpers.
 
 ## Terminal drawer
 
-⌃⌘` (View ▸ Show Terminal, or the terminal button in the toolbar) opens a terminal under the panes, started in the active pane's folder with your login
+⌃⌘` (View ▸ Show Terminal, or the terminal button in the toolbar) opens a terminal under the panes (or at their right), started in the active pane's folder with your login
 shell; ⌃⌘` again hides it, and the same shell is there when it comes back. Shown again from another folder, a shell
 waiting at its prompt goes to the active pane's folder (a `cd` it runs for you, after clearing anything typed at the
-prompt); while a program runs in it, nothing is typed. Drag its top edge to resize it. Files
+prompt); while a program runs in it, nothing is typed. The button beside Go to Pane Folder moves it to the panes'
+right, the whole height, and back under them; new windows open it where you left it. Drag its edge facing the panes
+to resize it. Files
 dropped on it are typed as quoted paths, and Go to Pane Folder types a `cd` to the active pane's folder; neither
 presses Return, so nothing runs until you do (a name holding a control character isn't typed at all). Open in
 Terminal (⌃⌘T) still opens Ghostty, iTerm, Warp or Terminal.

@@ -8,8 +8,9 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
     let status: StatusBarController
     let scopeBar = SearchScopeBar()
     let noticeBar = NoticeBar()
-    /// The terminal drawer under the panes, hidden until asked for.
-    let terminal = TerminalDrawerController()
+    /// The terminal drawer under the panes or at their right, hidden until asked for.
+    let terminal: TerminalDrawerController
+    private var terminalPlacement: [NSLayoutConstraint] = []
     /// The Git History panel between the files and the Inspector, collapsed until asked for.
     let history: GitHistoryPanelController
     let historyItem: NSSplitViewItem
@@ -23,6 +24,7 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         inspector = InspectorViewController(services: services)
         inspectorItem = NSSplitViewItem(inspectorWithViewController: inspector)
         history = GitHistoryPanelController(services: services)
+        terminal = TerminalDrawerController(preferences: services.preferences)
         historyItem = NSSplitViewItem(viewController: history)
         super.init(nibName: nil, bundle: nil)
 
@@ -47,13 +49,12 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         content.view.addSubview(terminal.view)
         NSLayoutConstraint.activate([
             panes.view.leadingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.leadingAnchor),
-            panes.view.trailingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.trailingAnchor),
             panes.view.topAnchor.constraint(equalTo: content.view.topAnchor),
-            panes.view.bottomAnchor.constraint(equalTo: terminal.view.topAnchor),
-            terminal.view.leadingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.leadingAnchor),
             terminal.view.trailingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.trailingAnchor),
             terminal.view.bottomAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.bottomAnchor),
         ])
+        terminal.onEdgeChange = { [weak self] in self?.placeTerminal() }
+        placeTerminal()
         let contentItem = NSSplitViewItem(viewController: content)
         contentItem.minimumThickness = 120
         contentItem.addBottomAlignedAccessoryViewController(status)
@@ -75,6 +76,25 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Under the panes, the drawer spans their width; at their right, the whole height below the toolbar.
+    private func placeTerminal() {
+        NSLayoutConstraint.deactivate(terminalPlacement)
+        let guide = terminal.view.superview!.safeAreaLayoutGuide
+        terminalPlacement = switch terminal.edge {
+        case .bottom: [
+            panes.view.trailingAnchor.constraint(equalTo: guide.trailingAnchor),
+            panes.view.bottomAnchor.constraint(equalTo: terminal.view.topAnchor),
+            terminal.view.leadingAnchor.constraint(equalTo: guide.leadingAnchor),
+        ]
+        case .right: [
+            panes.view.trailingAnchor.constraint(equalTo: terminal.view.leadingAnchor),
+            panes.view.bottomAnchor.constraint(equalTo: guide.bottomAnchor),
+            terminal.view.topAnchor.constraint(equalTo: guide.topAnchor),
+        ]
+        }
+        NSLayoutConstraint.activate(terminalPlacement)
+    }
 
     /// The panel is in the split only while it shows: hidden, even a collapsed item keeps a divider, and the window's
     /// smallest size would no longer fit.
