@@ -8,6 +8,8 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
     let status: StatusBarController
     let scopeBar = SearchScopeBar()
     let noticeBar = NoticeBar()
+    /// The terminal drawer under the panes, hidden until asked for.
+    let terminal = TerminalDrawerController()
     let inspectorItem: NSSplitViewItem
 
     init(firstPane: PaneHostViewController) {
@@ -35,11 +37,17 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         panes.view.translatesAutoresizingMaskIntoConstraints = false
         panes.view.clipsToBounds = true
         content.view.addSubview(panes.view)
+        content.addChild(terminal)
+        terminal.view.translatesAutoresizingMaskIntoConstraints = false
+        content.view.addSubview(terminal.view)
         NSLayoutConstraint.activate([
             panes.view.leadingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.leadingAnchor),
             panes.view.trailingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.trailingAnchor),
             panes.view.topAnchor.constraint(equalTo: content.view.topAnchor),
-            panes.view.bottomAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.bottomAnchor),
+            panes.view.bottomAnchor.constraint(equalTo: terminal.view.topAnchor),
+            terminal.view.leadingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.leadingAnchor),
+            terminal.view.trailingAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.trailingAnchor),
+            terminal.view.bottomAnchor.constraint(equalTo: content.view.safeAreaLayoutGuide.bottomAnchor),
         ])
         let contentItem = NSSplitViewItem(viewController: content)
         contentItem.minimumThickness = 120

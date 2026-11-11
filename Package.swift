@@ -118,6 +118,8 @@ let package = Package(
     dependencies: [
         // Updates (Check for Updates…, automatic checks), pinned to a release and verified by its checksum.
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+        // The terminal drawer (fork only): a terminal emulator and its AppKit view.
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm", exact: "1.19.0"),
     ],
     targets: [
         .target(name: "CPreviewText", cSettings: [.unsafeFlags(["-fobjc-arc", "-fobjc-arc-exceptions"])],
@@ -246,6 +248,7 @@ let package = Package(
             name: "Strata",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "SwiftTerm", package: "SwiftTerm"),
                 "StrataSupport",
                 "StrataTheme",
                 "StrataModel",
