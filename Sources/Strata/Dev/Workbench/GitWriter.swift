@@ -1,4 +1,8 @@
 import Foundation
+import os
+
+/// Intervals Instruments shows for git work (Points of Interest: subsystem dev.strata.app, category git).
+package nonisolated let gitSignposts = OSSignposter(subsystem: "dev.strata.app", category: "git")
 
 /// Runs the git commands that change a repository, for one window's environment. Only in repositories the user
 /// trusts, one command at a time per repository, never prompting and never opening an editor Strata didn't name.
@@ -40,6 +44,9 @@ package final class GitWriter {
 
     package func isRunning(in repository: GitRepository) -> Bool { running.contains(repository.rootPath) }
 
+    /// For reading a trusted repository with its own config (its filters), as writes see it.
+    package var readEnvironment: [String: String] { environment(for: Options()) }
+
     package func run(_ arguments: [String], in repository: GitRepository,
                      options: Options = Options()) async -> Result<GitRunResult, Refusal> {
         guard GitRunner.isAvailable else { return .failure(.gitMissing) }
@@ -53,6 +60,8 @@ package final class GitWriter {
             notifications.post(name: .gitWriteStateChanged, object: self, userInfo: ["root": root])
         }
         guard await trust.isTrusted(repository) else { return .failure(.untrusted) }
+        let interval = gitSignposts.beginInterval("git write", "\(arguments.first ?? "")")
+        defer { gitSignposts.endInterval("git write", interval) }
         let result = await GitRunner.runConfigured(arguments, in: repository.root,
                                                    environment: environment(for: options), timeout: options.timeout)
         didRun(repository)

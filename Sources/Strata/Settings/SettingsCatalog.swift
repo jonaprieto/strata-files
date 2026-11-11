@@ -1,13 +1,14 @@
 import Foundation
 
 nonisolated enum SettingsPage: String, CaseIterable, Sendable {
-    case general, search, terminal, appearance, shortcuts, viewOptions
+    case general, search, terminal, git, appearance, shortcuts, viewOptions
 
     var title: String {
         switch self {
         case .general: String(localized: "General")
         case .search: String(localized: "Search & Index")
         case .terminal: String(localized: "Terminal")
+        case .git: String(localized: "Git")
         case .appearance: String(localized: "Appearance")
         case .shortcuts: String(localized: "Shortcuts")
         case .viewOptions: String(localized: "View Options")

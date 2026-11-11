@@ -178,15 +178,18 @@ package nonisolated enum GitRunner {
 
     /// Runs git as the repository's owner asked: its own hooks, filters and config, with locks, and `environment`
     /// laid over this process's (minus what could point git elsewhere). Only for repositories the user trusts.
+    /// `readOnly` reads take no optional locks: a status that refreshed the index would wake the repository watcher,
+    /// which reads again.
     @concurrent
     package static func runConfigured(_ arguments: [String], in directory: URL, environment: [String: String],
-                                      timeout: TimeInterval) async -> GitRunResult {
+                                      timeout: TimeInterval, readOnly: Bool = false) async -> GitRunResult {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 var merged = baseEnvironment()
                 merged.merge(environment) { $1 }
+                if readOnly { merged["GIT_OPTIONAL_LOCKS"] = "0" }
                 continuation.resume(returning: execute(arguments, in: directory, timeout: timeout, start: Date(),
-                                                       environment: merged, readOnly: false))
+                                                       environment: merged, readOnly: readOnly))
             }
         }
     }
