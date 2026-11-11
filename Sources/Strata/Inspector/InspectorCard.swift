@@ -171,8 +171,12 @@ final class InspectorCard: NSView, ColorThemeUpdating {
 final class InspectorRows: NSView {
     private let grid = NSGridView()
     static let labelWidth: CGFloat = 74
+    /// Narrower than this, a value beside its label is too thin to read (dates break letter by letter), so each label
+    /// sits above its value instead.
+    static let stackedBelow: CGFloat = 200
     /// What the grid shows: each row's title and value view.
     private(set) var shown: [(title: String, value: NSView)] = []
+    private(set) var isStacked = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -209,6 +213,20 @@ final class InspectorRows: NSView {
         // torn down and laid out anew (and a selection in a value survives).
         if updateInPlace(rows) { return }
         shown = rows.map { (title: $0.0, value: $0.1) }
+        rebuild()
+    }
+
+    override func layout() {
+        let stacked = bounds.width > 0 && bounds.width < Self.stackedBelow
+        if stacked != isStacked {
+            isStacked = stacked
+            rebuild()
+        }
+        super.layout()
+    }
+
+    private func rebuild() {
+        let rows = shown.map { ($0.title, $0.value) }
         // NSGridView.removeRow leaves the cell views behind, so remove them explicitly.
         while grid.numberOfRows > 0 {
             let row = grid.row(at: 0)
@@ -218,13 +236,10 @@ final class InspectorRows: NSView {
         // Empty columns left behind collapse to nothing, which the 74-point label column can't do: with no rows, that
         // contradicts the grid filling the card. addRow makes the columns again (set up below).
         while grid.numberOfColumns > 0 { grid.removeColumn(at: 0) }
+        if isStacked { return rebuildStacked(rows) }
+        grid.rowSpacing = 6
         for (name, value) in rows {
-            let label = NSTextField(labelWithString: name)
-            label.font = .systemFont(ofSize: 12)
-            label.textColor = InspectorColors.secondary
-            label.lineBreakMode = .byTruncatingTail
-            label.toolTip = name
-            grid.addRow(with: [label, value])
+            grid.addRow(with: [label(name), value])
         }
         guard grid.numberOfColumns == 2 else { return }
         grid.column(at: 0).xPlacement = .leading
@@ -245,10 +260,33 @@ final class InspectorRows: NSView {
         }
     }
 
+    private func rebuildStacked(_ rows: [(String, NSView)]) {
+        grid.rowSpacing = 2
+        for (index, (name, value)) in rows.enumerated() {
+            grid.addRow(with: [label(name)])
+            grid.addRow(with: [value])
+            if index > 0 { grid.row(at: 2 * index).topPadding = 6 }
+        }
+        guard grid.numberOfColumns == 1 else { return }
+        grid.column(at: 0).xPlacement = .fill
+        for (index, row) in rows.enumerated() where row.1.contentHuggingPriority(for: .horizontal) > .dragThatCannotResizeWindow {
+            grid.cell(atColumnIndex: 0, rowIndex: 2 * index + 1).xPlacement = .leading
+        }
+    }
+
+    private func label(_ name: String) -> NSTextField {
+        let label = NSTextField(labelWithString: name)
+        label.font = .systemFont(ofSize: 12)
+        label.textColor = InspectorColors.secondary
+        label.lineBreakMode = .byTruncatingTail
+        label.toolTip = name
+        return label
+    }
+
     /// Applies `rows` to the rows shown when they're the same rows (titles, and values of the same kind showing the
     /// same thing), changing only text that differs. False when the grid has to be rebuilt.
     private func updateInPlace(_ rows: [(String, NSView)]) -> Bool {
-        guard rows.count == shown.count, grid.numberOfRows == shown.count else { return false }
+        guard rows.count == shown.count, grid.numberOfRows == shown.count * (isStacked ? 2 : 1) else { return false }
         for (row, current) in zip(rows, shown) {
             guard row.0 == current.title else { return false }
             switch (row.1, current.value) {
