@@ -59,6 +59,11 @@ final class GitHistoryPanelController: NSViewController {
         banner.isHidden = true
         banner.setAccessibilityElement(true)
         banner.setAccessibilityRole(.group)
+        // Longer than the panel, a line ends in an ellipsis; holding its full width, it pushed the header past the edge.
+        for label in [titleLabel, statusLabel, bannerLabel] {
+            label.lineBreakMode = .byTruncatingTail
+            label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        }
         emptyMessage.textColor = .secondaryLabelColor
         emptyMessage.isHidden = true
         let stack = NSStackView(views: [titleLabel, statusLabel, banner, emptyMessage])

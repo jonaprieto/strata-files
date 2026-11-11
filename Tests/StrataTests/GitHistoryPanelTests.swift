@@ -202,6 +202,7 @@ import Testing
         let active = owner.pane
         let other = try #require(owner.panes.first { $0 !== active })
         let width = other.host.view.frame.width
+        let inspector = owner.split.inspector.view.frame.width
 
         _ = try await showPanel(owner)
         owner.split.splitView.layoutSubtreeIfNeeded()
@@ -211,8 +212,37 @@ import Testing
 
         owner.toggleGitHistory(nil)
         #expect(!owner.split.isHistoryShown && owner.isDualPane && owner.pane === active)
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        #expect(owner.split.inspector.view.frame.width == inspector, "The Inspector keeps its width: \(owner.split.inspector.view.frame.width) \(inspector)")
         let back = try #require(owner.panes.first { $0 !== active })
         #expect(back.location.lexicallyStandardized == other.location.lexicallyStandardized)
+        withExtendedLifetime(environment) {}
+    }
+
+    /// A repository line longer than the panel ends in an ellipsis inside its margins; it never pushes the header out
+    /// past the panel's left edge.
+    @Test func theHeaderStaysInsideANarrowPanel() async throws {
+        let repo = try await history()
+        try repo.write("an untracked file with a long name", "x\n")
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let first = try #require(panel.log?.commits.last)
+        await panel.show(first).value
+        let root = panel.view
+        root.frame = NSRect(x: 0, y: 0, width: 220, height: 400)
+        root.layoutSubtreeIfNeeded()
+        func all(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(all) }
+        let labels = all(root).compactMap { $0 as? NSTextField }.filter { !$0.isHidden && !$0.stringValue.isEmpty && $0.superview?.isHidden == false }
+            .filter { $0.isDescendant(of: panel.log?.view ?? NSView()) == false }
+        #expect(labels.count >= 3)
+        for label in labels {
+            let frame = label.convert(label.bounds, to: root)
+            // A label's frame sits 2 points outside its text, which starts at the 12-point margin.
+            #expect(frame.minX >= 9 && frame.maxX <= 220 - 9, "\(label.stringValue): \(frame)")
+        }
         withExtendedLifetime(environment) {}
     }
 
