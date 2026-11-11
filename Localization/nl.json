@@ -145,6 +145,10 @@
       "one": "%lld bestand",
       "other": "%lld bestanden"
     },
+    "%lld files changed in %@": {
+      "one": "%lld bestand gewijzigd in %@",
+      "other": "%lld bestanden gewijzigd in %@"
+    },
     "%lld folders": {
       "one": "%lld map",
       "other": "%lld mappen"
@@ -933,6 +937,7 @@
     "File vs. folder": "Bestand vs. map",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Archief ▸ Nieuw bestand maakt een leeg bestand ‘%@’. Laat de extensie leeg voor geen extensie.",
     "Files": "Bestanden",
+    "Files changed in the selected commit": "Bestanden gewijzigd in de geselecteerde commit",
     "Files changed since the rebase; nothing was changed.": "Bestanden zijn gewijzigd sinds de rebase; er is niets gewijzigd.",
     "Files changed since the reset; nothing was changed.": "Bestanden zijn gewijzigd sinds de reset; er is niets gewijzigd.",
     "Files changed since the stash; nothing was changed.": "Bestanden zijn gewijzigd sinds de stash; er is niets gewijzigd.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Krijg de kern van dit document in een paar regels, geschreven op je Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git kon de rebase niet afronden.",
+    "Git couldn’t list %@’s files.": "Git kon de bestanden van %@ niet tonen.",
     "Git couldn’t list the branches.": "Git kon de branches niet weergeven.",
     "Git couldn’t list the commits to rebase.": "Git kon de commits voor de rebase niet weergeven.",
     "Git couldn’t read this repository.": "Git kon deze repository niet lezen.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Geheime sleutel",
     "Section %lld": "Sectie %lld",
     "Section group": "Sectiegroep",
+    "Select a commit to see its files": "Selecteer een commit om de bestanden te zien",
     "Select All": "Selecteer alles",
     "Select folders to move to the Trash": "Selecteer mappen om naar de prullenmand te verplaatsen",
     "Select the files you want to change first.": "Selecteer eerst de bestanden die je wilt wijzigen.",

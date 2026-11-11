@@ -169,6 +169,11 @@
       "few": "%lld fișiere",
       "other": "%lld de fișiere"
     },
+    "%lld files changed in %@": {
+      "one": "%lld fișier modificat în %@",
+      "few": "%lld fișiere modificate în %@",
+      "other": "%lld de fișiere modificate în %@"
+    },
     "%lld folders": {
       "one": "%lld dosar",
       "few": "%lld dosare",
@@ -1039,6 +1044,7 @@
     "File vs. folder": "Fișier / dosar",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Fișier ▸ Fișier nou creează un fișier gol „%@”. Lasă extensia goală pentru niciuna.",
     "Files": "Fișiere",
+    "Files changed in the selected commit": "Fișiere modificate în commitul selectat",
     "Files changed since the rebase; nothing was changed.": "Fișierele s-au schimbat de la rebase; nimic nu a fost modificat.",
     "Files changed since the reset; nothing was changed.": "Fișierele s-au schimbat de la reset; nimic nu a fost modificat.",
     "Files changed since the stash; nothing was changed.": "Fișierele s-au schimbat de la stash; nimic nu a fost modificat.",
@@ -1102,6 +1108,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Află esența acestui document în câteva rânduri, scrise pe Mac-ul tău.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git nu a putut termina rebase-ul.",
+    "Git couldn’t list %@’s files.": "Git nu a putut lista fișierele din %@.",
     "Git couldn’t list the branches.": "Git nu a putut lista ramurile.",
     "Git couldn’t list the commits to rebase.": "Git nu a putut lista commiturile pentru rebase.",
     "Git couldn’t read this repository.": "Git nu a putut citi acest depozit.",
@@ -1830,6 +1837,7 @@
     "Secret Key": "Cheie secretă",
     "Section %lld": "Secțiunea %lld",
     "Section group": "Grup de secțiuni",
+    "Select a commit to see its files": "Selectați un commit pentru a-i vedea fișierele",
     "Select All": "Selectează tot",
     "Select folders to move to the Trash": "Selectează dosarele de mutat în Coș",
     "Select the files you want to change first.": "Selectează mai întâi fișierele pe care vrei să le modifici.",

@@ -195,6 +195,12 @@
       "many": "%lld файлов",
       "other": "%lld файла"
     },
+    "%lld files changed in %@": {
+      "one": "Изменено файлов в %2$@: %1$lld",
+      "few": "Изменено файлов в %2$@: %1$lld",
+      "many": "Изменено файлов в %2$@: %1$lld",
+      "other": "Изменено файлов в %2$@: %1$lld"
+    },
     "%lld folders": {
       "one": "%lld папка",
       "few": "%lld папки",
@@ -1147,6 +1153,7 @@
     "File vs. folder": "Файл или папка",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Файл ▸ Новый файл создает пустой «%@». Оставьте расширение пустым, чтобы его не было.",
     "Files": "Файлы",
+    "Files changed in the selected commit": "Файлы, измененные в выбранном коммите",
     "Files changed since the rebase; nothing was changed.": "Файлы изменились после rebase; ничего не изменено.",
     "Files changed since the reset; nothing was changed.": "Файлы изменились после reset; ничего не изменено.",
     "Files changed since the stash; nothing was changed.": "Файлы изменились после stash; ничего не изменено.",
@@ -1211,6 +1218,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Получите суть этого документа в нескольких строках, составленных прямо на вашем Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git не удалось завершить rebase.",
+    "Git couldn’t list %@’s files.": "Git не смог вывести файлы %@.",
     "Git couldn’t list the branches.": "Git не удалось получить список веток.",
     "Git couldn’t list the commits to rebase.": "Git не удалось получить список коммитов для rebase.",
     "Git couldn’t read this repository.": "Git не удалось прочитать этот репозиторий.",
@@ -1959,6 +1967,7 @@
     "Secret Key": "Секретный ключ",
     "Section %lld": "Раздел %lld",
     "Section group": "Группа разделов",
+    "Select a commit to see its files": "Выберите коммит, чтобы увидеть его файлы",
     "Select All": "Выбрать все",
     "Select folders to move to the Trash": "Выберите папки для перемещения в Корзину",
     "Select the files you want to change first.": "Сначала выберите файлы, которые нужно изменить.",

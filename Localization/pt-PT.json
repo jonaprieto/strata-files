@@ -145,6 +145,10 @@
       "one": "%lld ficheiro",
       "other": "%lld ficheiros"
     },
+    "%lld files changed in %@": {
+      "one": "%lld ficheiro alterado em %@",
+      "other": "%lld ficheiros alterados em %@"
+    },
     "%lld folders": {
       "one": "%lld pasta",
       "other": "%lld pastas"
@@ -933,6 +937,7 @@
     "File vs. folder": "Ficheiro vs. pasta",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Ficheiro ▸ Novo ficheiro cria um ficheiro vazio “%@”. Deixe a extensão vazia para não usar nenhuma.",
     "Files": "Ficheiros",
+    "Files changed in the selected commit": "Ficheiros alterados no commit selecionado",
     "Files changed since the rebase; nothing was changed.": "Os ficheiros mudaram desde o rebase; nada foi alterado.",
     "Files changed since the reset; nothing was changed.": "Os ficheiros mudaram desde o reset; nada foi alterado.",
     "Files changed since the stash; nothing was changed.": "Os ficheiros mudaram desde o stash; nada foi alterado.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Obtenha a ideia principal deste documento em poucas linhas, escritas no Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "O git não conseguiu concluir o rebase.",
+    "Git couldn’t list %@’s files.": "O Git não conseguiu listar os ficheiros de %@.",
     "Git couldn’t list the branches.": "O git não conseguiu listar os branches.",
     "Git couldn’t list the commits to rebase.": "O git não conseguiu listar os commits para o rebase.",
     "Git couldn’t read this repository.": "O git não conseguiu ler este repositório.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Chave secreta",
     "Section %lld": "Secção %lld",
     "Section group": "Grupo de secções",
+    "Select a commit to see its files": "Selecione um commit para ver os seus ficheiros",
     "Select All": "Selecionar tudo",
     "Select folders to move to the Trash": "Selecione pastas para mover para o Lixo",
     "Select the files you want to change first.": "Selecione primeiro os ficheiros que pretende alterar.",

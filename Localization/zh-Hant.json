@@ -121,6 +121,9 @@
     "%lld files": {
       "other": "%lld個檔案"
     },
+    "%lld files changed in %@": {
+      "other": "%2$@ 中變更了 %1$lld 個檔案"
+    },
     "%lld folders": {
       "other": "%lld個檔案夾"
     },
@@ -827,6 +830,7 @@
     "File vs. folder": "檔案對檔案夾",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "「檔案」▸「新增檔案」會建立空白的「%@」。如不需要副檔名，請留空。",
     "Files": "檔案",
+    "Files changed in the selected commit": "所選提交中變更的檔案",
     "Files changed since the rebase; nothing was changed.": "重定基底之後檔案已更動；未做任何更動。",
     "Files changed since the reset; nothing was changed.": "重置之後檔案已更動；未做任何更動。",
     "Files changed since the stash; nothing was changed.": "儲藏之後檔案已更動；未做任何更動。",
@@ -888,6 +892,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "在你的Mac上以幾行文字概述此文件的重點。",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git 無法完成重定基底。",
+    "Git couldn’t list %@’s files.": "Git 無法列出 %@ 的檔案。",
     "Git couldn’t list the branches.": "Git 無法列出分支。",
     "Git couldn’t list the commits to rebase.": "Git 無法列出要重定基底的提交。",
     "Git couldn’t read this repository.": "Git 無法讀取此儲存庫。",
@@ -1576,6 +1581,7 @@
     "Secret Key": "私密存取金鑰",
     "Section %lld": "第 %lld 節",
     "Section group": "節群組",
+    "Select a commit to see its files": "選取一個提交以檢視其檔案",
     "Select All": "全選",
     "Select folders to move to the Trash": "選擇要丟到垃圾桶的檔案夾",
     "Select the files you want to change first.": "請先選擇要更改的檔案。",

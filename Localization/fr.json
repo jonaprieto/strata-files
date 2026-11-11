@@ -145,6 +145,10 @@
       "one": "%lld fichier",
       "other": "%lld fichiers"
     },
+    "%lld files changed in %@": {
+      "one": "%lld fichier modifié dans %@",
+      "other": "%lld fichiers modifiés dans %@"
+    },
     "%lld folders": {
       "one": "%lld dossier",
       "other": "%lld dossiers"
@@ -933,6 +937,7 @@
     "File vs. folder": "Fichier / dossier",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Fichier ▸ Nouveau fichier crée un fichier vide « %@ ». Laissez l’extension vide pour n’en mettre aucune.",
     "Files": "Fichiers",
+    "Files changed in the selected commit": "Fichiers modifiés dans le commit sélectionné",
     "Files changed since the rebase; nothing was changed.": "Des fichiers ont changé depuis le rebase ; rien n’a été modifié.",
     "Files changed since the reset; nothing was changed.": "Des fichiers ont changé depuis le reset ; rien n’a été modifié.",
     "Files changed since the stash; nothing was changed.": "Des fichiers ont changé depuis le stash ; rien n’a été modifié.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Obtenez l’essentiel de ce document en quelques lignes, rédigées sur votre Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git n’a pas pu terminer le rebase.",
+    "Git couldn’t list %@’s files.": "Git n’a pas pu lister les fichiers de %@.",
     "Git couldn’t list the branches.": "Git n’a pas pu lister les branches.",
     "Git couldn’t list the commits to rebase.": "Git n’a pas pu lister les commits à rebaser.",
     "Git couldn’t read this repository.": "Git n’a pas pu lire ce dépôt.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Clé secrète",
     "Section %lld": "Section %lld",
     "Section group": "Groupe de sections",
+    "Select a commit to see its files": "Sélectionnez un commit pour voir ses fichiers",
     "Select All": "Tout sélectionner",
     "Select folders to move to the Trash": "Sélectionnez les dossiers à placer dans la corbeille",
     "Select the files you want to change first.": "Sélectionnez d’abord les fichiers à modifier.",

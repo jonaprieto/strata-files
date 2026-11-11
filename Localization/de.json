@@ -145,6 +145,10 @@
       "one": "%lld Datei",
       "other": "%lld Dateien"
     },
+    "%lld files changed in %@": {
+      "one": "%lld Datei in %@ geändert",
+      "other": "%lld Dateien in %@ geändert"
+    },
     "%lld folders": {
       "one": "%lld Ordner",
       "other": "%lld Ordner"
@@ -933,6 +937,7 @@
     "File vs. folder": "Datei vs. Ordner",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "„Ablage“ ▸ „Neue Datei“ erstellt eine leere Datei „%@“. Lass das Suffix leer, wenn du keins möchtest.",
     "Files": "Dateien",
+    "Files changed in the selected commit": "Im ausgewählten Commit geänderte Dateien",
     "Files changed since the rebase; nothing was changed.": "Dateien haben sich seit dem Rebase geändert; nichts wurde geändert.",
     "Files changed since the reset; nothing was changed.": "Dateien haben sich seit dem Zurücksetzen geändert; nichts wurde geändert.",
     "Files changed since the stash; nothing was changed.": "Dateien haben sich seit dem Stash geändert; nichts wurde geändert.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Erhalte das Wesentliche dieses Dokuments in wenigen Zeilen, geschrieben auf deinem Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git konnte den Rebase nicht abschließen.",
+    "Git couldn’t list %@’s files.": "Git konnte die Dateien von %@ nicht auflisten.",
     "Git couldn’t list the branches.": "Git konnte die Branches nicht auflisten.",
     "Git couldn’t list the commits to rebase.": "Git konnte die Commits für den Rebase nicht auflisten.",
     "Git couldn’t read this repository.": "Git konnte dieses Repository nicht lesen.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Geheimer Schlüssel",
     "Section %lld": "Abschnitt %lld",
     "Section group": "Abschnittsgruppe",
+    "Select a commit to see its files": "Wähle einen Commit, um seine Dateien zu sehen",
     "Select All": "Alles auswählen",
     "Select folders to move to the Trash": "Ordner auswählen, die in den Papierkorb gelegt werden sollen",
     "Select the files you want to change first.": "Wähle zuerst die Dateien aus, die du ändern möchtest.",

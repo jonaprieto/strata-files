@@ -121,6 +121,9 @@
     "%lld files": {
       "other": "파일 %lld개"
     },
+    "%lld files changed in %@": {
+      "other": "%2$@에서 변경된 파일 %1$lld개"
+    },
     "%lld folders": {
       "other": "폴더 %lld개"
     },
@@ -827,6 +830,7 @@
     "File vs. folder": "파일 대 폴더",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "파일 ▸ 새로운 파일은 빈 “%@” 파일을 만듭니다. 확장자를 붙이지 않으려면 비워 두십시오.",
     "Files": "파일",
+    "Files changed in the selected commit": "선택한 커밋에서 변경된 파일",
     "Files changed since the rebase; nothing was changed.": "리베이스 이후 파일이 변경되어 아무것도 바꾸지 않았습니다.",
     "Files changed since the reset; nothing was changed.": "리셋 이후 파일이 변경되어 아무것도 바꾸지 않았습니다.",
     "Files changed since the stash; nothing was changed.": "스태시 이후 파일이 변경되어 아무것도 바꾸지 않았습니다.",
@@ -888,6 +892,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "이 문서의 요점을 Mac에서 몇 줄로 요약합니다.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git이 리베이스를 완료할 수 없습니다.",
+    "Git couldn’t list %@’s files.": "Git이 %@의 파일 목록을 가져오지 못했습니다.",
     "Git couldn’t list the branches.": "Git이 브랜치 목록을 가져올 수 없습니다.",
     "Git couldn’t list the commits to rebase.": "Git이 리베이스할 커밋 목록을 가져올 수 없습니다.",
     "Git couldn’t read this repository.": "Git이 이 저장소를 읽을 수 없습니다.",
@@ -1576,6 +1581,7 @@
     "Secret Key": "보안 액세스 키",
     "Section %lld": "섹션 %lld",
     "Section group": "섹션 그룹",
+    "Select a commit to see its files": "커밋을 선택하면 파일이 표시됩니다",
     "Select All": "전체 선택",
     "Select folders to move to the Trash": "휴지통으로 이동할 폴더 선택",
     "Select the files you want to change first.": "먼저 변경할 파일을 선택하십시오.",

@@ -193,6 +193,12 @@
       "many": "%lld plików",
       "other": "%lld pliku"
     },
+    "%lld files changed in %@": {
+      "one": "%lld plik zmieniony w %@",
+      "few": "%lld pliki zmienione w %@",
+      "many": "%lld plików zmienionych w %@",
+      "other": "%lld pliku zmienionego w %@"
+    },
     "%lld folders": {
       "one": "%lld folder",
       "few": "%lld foldery",
@@ -1145,6 +1151,7 @@
     "File vs. folder": "Plik a folder",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Plik ▸ Nowy plik tworzy pusty plik „%@”. Zostaw rozszerzenie puste, aby go nie dodawać.",
     "Files": "Pliki",
+    "Files changed in the selected commit": "Pliki zmienione w wybranym commicie",
     "Files changed since the rebase; nothing was changed.": "Pliki zmieniły się od rebase; nic nie zmieniono.",
     "Files changed since the reset; nothing was changed.": "Pliki zmieniły się od reset; nic nie zmieniono.",
     "Files changed since the stash; nothing was changed.": "Pliki zmieniły się od stash; nic nie zmieniono.",
@@ -1209,6 +1216,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Poznaj sedno tego dokumentu w kilku zdaniach napisanych na Twoim Macu.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git nie mógł dokończyć rebase.",
+    "Git couldn’t list %@’s files.": "Git nie mógł wyświetlić plików %@.",
     "Git couldn’t list the branches.": "Git nie mógł wyświetlić gałęzi.",
     "Git couldn’t list the commits to rebase.": "Git nie mógł wyświetlić commitów do rebase.",
     "Git couldn’t read this repository.": "Git nie mógł odczytać tego repozytorium.",
@@ -1957,6 +1965,7 @@
     "Secret Key": "Tajny klucz",
     "Section %lld": "Część %lld",
     "Section group": "Grupa sekcji",
+    "Select a commit to see its files": "Wybierz commit, aby zobaczyć jego pliki",
     "Select All": "Zaznacz wszystko",
     "Select folders to move to the Trash": "Zaznacz foldery do przeniesienia do Kosza",
     "Select the files you want to change first.": "Najpierw zaznacz pliki, które chcesz zmienić.",

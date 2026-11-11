@@ -145,6 +145,10 @@
       "one": "%lld fil",
       "other": "%lld filer"
     },
+    "%lld files changed in %@": {
+      "one": "%lld fil endret i %@",
+      "other": "%lld filer endret i %@"
+    },
     "%lld folders": {
       "one": "%lld mappe",
       "other": "%lld mapper"
@@ -933,6 +937,7 @@
     "File vs. folder": "Fil mot mappe",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Arkiv ▸ Ny fil lager en tom «%@». La filetternavnet stå tomt for ingen.",
     "Files": "Filer",
+    "Files changed in the selected commit": "Filer endret i den valgte commiten",
     "Files changed since the rebase; nothing was changed.": "Filer er endret siden rebase; ingenting ble endret.",
     "Files changed since the reset; nothing was changed.": "Filer er endret siden reset; ingenting ble endret.",
     "Files changed since the stash; nothing was changed.": "Filer er endret siden stash; ingenting ble endret.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Få hovedpunktene i dette dokumentet på noen få linjer, skrevet på Macen din.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git kunne ikke fullføre rebase.",
+    "Git couldn’t list %@’s files.": "Git kunne ikke vise filene i %@.",
     "Git couldn’t list the branches.": "Git kunne ikke liste grenene.",
     "Git couldn’t list the commits to rebase.": "Git kunne ikke liste commitene som skal rebases.",
     "Git couldn’t read this repository.": "Git kunne ikke lese dette arkivet.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Hemmelig nøkkel",
     "Section %lld": "Del %lld",
     "Section group": "Inndelingsgruppe",
+    "Select a commit to see its files": "Velg en commit for å se filene",
     "Select All": "Marker alt",
     "Select folders to move to the Trash": "Velg mapper som skal flyttes til papirkurven",
     "Select the files you want to change first.": "Marker filene du vil endre, først.",

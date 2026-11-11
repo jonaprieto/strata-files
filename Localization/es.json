@@ -145,6 +145,10 @@
       "one": "%lld archivo",
       "other": "%lld archivos"
     },
+    "%lld files changed in %@": {
+      "one": "%lld archivo cambiado en %@",
+      "other": "%lld archivos cambiados en %@"
+    },
     "%lld folders": {
       "one": "%lld carpeta",
       "other": "%lld carpetas"
@@ -933,6 +937,7 @@
     "File vs. folder": "Archivo frente a carpeta",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Archivo ▸ Nuevo archivo crea un archivo vacío “%@”. Deja la extensión vacía para no usar ninguna.",
     "Files": "Archivos",
+    "Files changed in the selected commit": "Archivos cambiados en el commit seleccionado",
     "Files changed since the rebase; nothing was changed.": "Los archivos han cambiado desde el rebase; no se ha cambiado nada.",
     "Files changed since the reset; nothing was changed.": "Los archivos han cambiado desde el reset; no se ha cambiado nada.",
     "Files changed since the stash; nothing was changed.": "Los archivos han cambiado desde el stash; no se ha cambiado nada.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Obtén la idea principal de este documento en pocas líneas, redactadas en tu Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git no ha podido terminar el rebase.",
+    "Git couldn’t list %@’s files.": "Git no pudo listar los archivos de %@.",
     "Git couldn’t list the branches.": "Git no ha podido listar las ramas.",
     "Git couldn’t list the commits to rebase.": "Git no ha podido listar los commits del rebase.",
     "Git couldn’t read this repository.": "Git no ha podido leer este repositorio.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Clave secreta",
     "Section %lld": "Sección %lld",
     "Section group": "Grupo de secciones",
+    "Select a commit to see its files": "Selecciona un commit para ver sus archivos",
     "Select All": "Seleccionar todo",
     "Select folders to move to the Trash": "Selecciona carpetas para trasladarlas a la Papelera",
     "Select the files you want to change first.": "Primero selecciona los archivos que quieres cambiar.",

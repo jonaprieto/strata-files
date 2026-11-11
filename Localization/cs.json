@@ -169,6 +169,11 @@
       "few": "%lld soubory",
       "other": "%lld souborů"
     },
+    "%lld files changed in %@": {
+      "one": "%lld soubor změněn v %@",
+      "few": "%lld soubory změněny v %@",
+      "other": "%lld souborů změněno v %@"
+    },
     "%lld folders": {
       "one": "%lld složka",
       "few": "%lld složky",
@@ -1039,6 +1044,7 @@
     "File vs. folder": "Soubor vs. složka",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Soubor ▸ Nový soubor vytvoří prázdný soubor „%@“. Pokud příponu nechcete, nechte pole prázdné.",
     "Files": "Soubory",
+    "Files changed in the selected commit": "Soubory změněné ve vybraném commitu",
     "Files changed since the rebase; nothing was changed.": "Soubory se od rebase změnily; nic nebylo změněno.",
     "Files changed since the reset; nothing was changed.": "Soubory se od resetu změnily; nic nebylo změněno.",
     "Files changed since the stash; nothing was changed.": "Soubory se od stashe změnily; nic nebylo změněno.",
@@ -1102,6 +1108,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Shrnutí podstaty tohoto dokumentu v několika řádcích, vytvořené na vašem Macu.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git nedokázal rebase dokončit.",
+    "Git couldn’t list %@’s files.": "Git nedokázal vypsat soubory commitu %@.",
     "Git couldn’t list the branches.": "Git nedokázal vypsat větve.",
     "Git couldn’t list the commits to rebase.": "Git nedokázal vypsat commity k rebase.",
     "Git couldn’t read this repository.": "Git nedokázal přečíst tento repozitář.",
@@ -1830,6 +1837,7 @@
     "Secret Key": "Tajný klíč",
     "Section %lld": "Část %lld",
     "Section group": "Skupina oddílů",
+    "Select a commit to see its files": "Vyberte commit a uvidíte jeho soubory",
     "Select All": "Vybrat vše",
     "Select folders to move to the Trash": "Vyberte složky k přesunutí do koše",
     "Select the files you want to change first.": "Nejdříve vyberte soubory, které chcete změnit.",

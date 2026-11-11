@@ -181,6 +181,14 @@ package final class GitWorkbench {
         return run.succeeded ? GitDiffParser.parse(run.output) : nil
     }
 
+    /// The files `commit` changed against its first parent, and how, without their changes: cheap enough to read
+    /// each time the selection moves.
+    package func files(of commit: String) async -> [GitFileDiff]? {
+        let arguments = ["show", "--format=", "--first-parent", "--name-status", "-z", "-M", "--no-color", "--end-of-options", commit]
+        let run = await GitRunner.run(arguments, in: repository.root, timeout: 10)
+        return run.succeeded ? GitNameStatus.parse(run.output) : nil
+    }
+
     /// A page of history in topological order: the current branch, or every branch with `all`.
     package func log(all: Bool, skip: Int = 0, limit: Int = 500) async -> [GitCommit]? {
         let arguments = ["log", GitLogParser.format, "--topo-order", "--no-color", "-n", String(limit), "--skip", String(skip)]

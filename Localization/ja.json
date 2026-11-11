@@ -121,6 +121,9 @@
     "%lld files": {
       "other": "%lld個のファイル"
     },
+    "%lld files changed in %@": {
+      "other": "%2$@で変更された%1$lld個のファイル"
+    },
     "%lld folders": {
       "other": "%lld個のフォルダ"
     },
@@ -827,6 +830,7 @@
     "File vs. folder": "ファイル / フォルダ",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "ファイル ▸ 新規ファイルで空の「%@」が作成されます。拡張子を付けない場合は空欄にしてください。",
     "Files": "ファイル",
+    "Files changed in the selected commit": "選択したコミットで変更されたファイル",
     "Files changed since the rebase; nothing was changed.": "リベース後にファイルが変更されています。何も変更しませんでした。",
     "Files changed since the reset; nothing was changed.": "リセット後にファイルが変更されています。何も変更しませんでした。",
     "Files changed since the stash; nothing was changed.": "stash後にファイルが変更されています。何も変更しませんでした。",
@@ -888,6 +892,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "この書類の要点を数行でまとめます。要約はお使いのMac上で作成されます。",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Gitがリベースを完了できませんでした。",
+    "Git couldn’t list %@’s files.": "Gitは%@のファイルを一覧表示できませんでした。",
     "Git couldn’t list the branches.": "Gitがブランチを一覧表示できませんでした。",
     "Git couldn’t list the commits to rebase.": "Gitがリベースするコミットを一覧表示できませんでした。",
     "Git couldn’t read this repository.": "Gitがこのリポジトリを読み込めませんでした。",
@@ -1576,6 +1581,7 @@
     "Secret Key": "シークレットキー",
     "Section %lld": "セクション%lld",
     "Section group": "セクション グループ",
+    "Select a commit to see its files": "コミットを選択するとファイルが表示されます",
     "Select All": "すべてを選択",
     "Select folders to move to the Trash": "ゴミ箱に入れるフォルダを選択",
     "Select the files you want to change first.": "先に変更したいファイルを選択してください。",

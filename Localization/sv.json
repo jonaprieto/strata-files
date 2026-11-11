@@ -145,6 +145,10 @@
       "one": "%lld fil",
       "other": "%lld filer"
     },
+    "%lld files changed in %@": {
+      "one": "%lld fil ändrad i %@",
+      "other": "%lld filer ändrade i %@"
+    },
     "%lld folders": {
       "one": "%lld mapp",
       "other": "%lld mappar"
@@ -933,6 +937,7 @@
     "File vs. folder": "Fil kontra mapp",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Arkiv ▸ Ny fil skapar en tom ”%@”. Lämna filändelsen tom för ingen.",
     "Files": "Filer",
+    "Files changed in the selected commit": "Filer ändrade i den valda committen",
     "Files changed since the rebase; nothing was changed.": "Filer har ändrats sedan rebase; inget ändrades.",
     "Files changed since the reset; nothing was changed.": "Filer har ändrats sedan reset; inget ändrades.",
     "Files changed since the stash; nothing was changed.": "Filer har ändrats sedan stash; inget ändrades.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Få kärnan i det här dokumentet på några rader, skrivet på din Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git kunde inte slutföra rebase.",
+    "Git couldn’t list %@’s files.": "Git kunde inte lista filerna i %@.",
     "Git couldn’t list the branches.": "Git kunde inte lista grenarna.",
     "Git couldn’t list the commits to rebase.": "Git kunde inte lista commits för rebase.",
     "Git couldn’t read this repository.": "Git kunde inte läsa det här arkivet.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Hemlig nyckel",
     "Section %lld": "Avsnitt %lld",
     "Section group": "Avsnittsgrupp",
+    "Select a commit to see its files": "Välj en commit för att se dess filer",
     "Select All": "Markera alla",
     "Select folders to move to the Trash": "Välj mappar att flytta till papperskorgen",
     "Select the files you want to change first.": "Markera filerna du vill ändra först.",

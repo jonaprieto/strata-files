@@ -145,6 +145,10 @@
       "one": "%lld fájl",
       "other": "%lld fájl"
     },
+    "%lld files changed in %@": {
+      "one": "%lld fájl módosult itt: %@",
+      "other": "%lld fájl módosult itt: %@"
+    },
     "%lld folders": {
       "one": "%lld mappa",
       "other": "%lld mappa"
@@ -933,6 +937,7 @@
     "File vs. folder": "Fájl és mappa",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "A Fájl ▸ Új fájl egy üres „%@” fájlt hoz létre. Ha nem kell kiterjesztés, hagyja üresen.",
     "Files": "Fájlok",
+    "Files changed in the selected commit": "A kijelölt commitban módosult fájlok",
     "Files changed since the rebase; nothing was changed.": "A fájlok a rebase óta megváltoztak; nem történt változtatás.",
     "Files changed since the reset; nothing was changed.": "A fájlok a reset óta megváltoztak; nem történt változtatás.",
     "Files changed since the stash; nothing was changed.": "A fájlok a stash óta megváltoztak; nem történt változtatás.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "A dokumentum lényege néhány sorban, a Macen összeállítva.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "A git nem tudta befejezni a rebase-t.",
+    "Git couldn’t list %@’s files.": "A Git nem tudta listázni a(z) %@ fájljait.",
     "Git couldn’t list the branches.": "A git nem tudta kilistázni az ágakat.",
     "Git couldn’t list the commits to rebase.": "A git nem tudta kilistázni a rebase-hez szükséges commitokat.",
     "Git couldn’t read this repository.": "A git nem tudta beolvasni ezt a tárolót.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Titkos kulcs",
     "Section %lld": "%lld. szakasz",
     "Section group": "Szakaszcsoport",
+    "Select a commit to see its files": "Jelöljön ki egy commitot a fájljai megtekintéséhez",
     "Select All": "Az összes kijelölése",
     "Select folders to move to the Trash": "Válassza ki a Kukába helyezendő mappákat",
     "Select the files you want to change first.": "Előbb jelölje ki a módosítandó fájlokat.",

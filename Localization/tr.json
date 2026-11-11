@@ -145,6 +145,10 @@
       "one": "%lld dosya",
       "other": "%lld dosya"
     },
+    "%lld files changed in %@": {
+      "one": "%2$@ içinde %1$lld dosya değişti",
+      "other": "%2$@ içinde %1$lld dosya değişti"
+    },
     "%lld folders": {
       "one": "%lld klasör",
       "other": "%lld klasör"
@@ -933,6 +937,7 @@
     "File vs. folder": "Dosya / klasör",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "Dosya ▸ Yeni Dosya boş bir “%@” oluşturur. Uzantı istemiyorsanız boş bırakın.",
     "Files": "Dosyalar",
+    "Files changed in the selected commit": "Seçili commit’te değişen dosyalar",
     "Files changed since the rebase; nothing was changed.": "Dosyalar rebase’ten sonra değişti; hiçbir şey değiştirilmedi.",
     "Files changed since the reset; nothing was changed.": "Dosyalar reset’ten sonra değişti; hiçbir şey değiştirilmedi.",
     "Files changed since the stash; nothing was changed.": "Dosyalar stash’ten sonra değişti; hiçbir şey değiştirilmedi.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Bu belgenin özünü birkaç satırda alın; özet Mac’inizde yazılır.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git rebase’i tamamlayamadı.",
+    "Git couldn’t list %@’s files.": "Git, %@ dosyalarını listeleyemedi.",
     "Git couldn’t list the branches.": "Git dalları listeleyemedi.",
     "Git couldn’t list the commits to rebase.": "Git rebase edilecek commit’leri listeleyemedi.",
     "Git couldn’t read this repository.": "Git bu depoyu okuyamadı.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Gizli Anahtar",
     "Section %lld": "Bölüm %lld",
     "Section group": "Bölüm grubu",
+    "Select a commit to see its files": "Dosyalarını görmek için bir commit seçin",
     "Select All": "Tümünü Seç",
     "Select folders to move to the Trash": "Çöp Sepeti’ne taşınacak klasörleri seçin",
     "Select the files you want to change first.": "Önce değiştirmek istediğiniz dosyaları seçin.",

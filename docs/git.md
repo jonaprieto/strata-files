@@ -59,7 +59,10 @@ The log and the diff each name their keys on a line under them.
 
 ⌥⌘G (View ▸ Show Git History, or the clock button in the toolbar) opens a panel between the files and the
 Inspector. It follows the active pane's repository: its name, branch and changes, then its history with the graph,
-each commit's subject on a line of its own and its branches, id, date and author under it.
+each commit's subject on a line of its own and its branches, id, date and author under it. A selected commit's row
+reads in the selection's text color. Under the history, the files the selected commit changed, each with its letter
+(A added, M modified, D deleted, R renamed); clicking one, or Return on it, shows it in the pane among that commit's
+files, and a deleted one, which isn't there, shows the commit's changes instead.
 Clicking a commit shows that commit's files in the pane, at the folder the pane shows, or the nearest one that
 existed then; `n` `p`, `j` `k` and the arrow keys move as in the log, and the pane follows once they rest. The panel
 says which commit is shown, and Working Files brings the pane back to the repository's own files at the same place.

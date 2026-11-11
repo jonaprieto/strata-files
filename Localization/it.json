@@ -145,6 +145,10 @@
       "one": "%lld file",
       "other": "%lld file"
     },
+    "%lld files changed in %@": {
+      "one": "%lld file modificato in %@",
+      "other": "%lld file modificati in %@"
+    },
     "%lld folders": {
       "one": "%lld cartella",
       "other": "%lld cartelle"
@@ -933,6 +937,7 @@
     "File vs. folder": "File / cartella",
     "File ▸ New File makes an empty “%@”. Leave the extension empty for none.": "File ▸ Nuovo file crea un file vuoto “%@”. Lascia vuota l’estensione per non usarne nessuna.",
     "Files": "File",
+    "Files changed in the selected commit": "File modificati nel commit selezionato",
     "Files changed since the rebase; nothing was changed.": "I file sono cambiati dopo il rebase; non è stato modificato nulla.",
     "Files changed since the reset; nothing was changed.": "I file sono cambiati dopo il reset; non è stato modificato nulla.",
     "Files changed since the stash; nothing was changed.": "I file sono cambiati dopo lo stash; non è stato modificato nulla.",
@@ -995,6 +1000,7 @@
     "Get the gist of this document in a few lines, written on your Mac.": "Ottieni l’essenziale di questo documento in poche righe, scritte sul tuo Mac.",
     "Git": "Git",
     "Git couldn’t finish the rebase.": "Git non è riuscito a completare il rebase.",
+    "Git couldn’t list %@’s files.": "Git non è riuscito a elencare i file di %@.",
     "Git couldn’t list the branches.": "Git non è riuscito a elencare i rami.",
     "Git couldn’t list the commits to rebase.": "Git non è riuscito a elencare i commit del rebase.",
     "Git couldn’t read this repository.": "Git non è riuscito a leggere questo repository.",
@@ -1703,6 +1709,7 @@
     "Secret Key": "Chiave segreta",
     "Section %lld": "Sezione %lld",
     "Section group": "Gruppo di sezioni",
+    "Select a commit to see its files": "Seleziona un commit per vederne i file",
     "Select All": "Seleziona tutto",
     "Select folders to move to the Trash": "Seleziona le cartelle da spostare nel Cestino",
     "Select the files you want to change first.": "Prima seleziona i file da modificare.",
