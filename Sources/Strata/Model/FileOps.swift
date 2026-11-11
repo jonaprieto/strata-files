@@ -543,6 +543,8 @@ package enum FileOps {
 
     private static func register(_ actionName: String, _ undo: UndoManager?, _ handler: @escaping (UndoManager) -> Void) {
         guard let undo else { return }
+        let step = undo.beginStep()
+        defer { undo.endStep(step) }
         undo.registerUndo(withTarget: undo) { target in
             MainActor.assumeIsolated { handler(target) }
         }

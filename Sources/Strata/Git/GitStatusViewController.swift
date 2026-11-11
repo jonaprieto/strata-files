@@ -558,6 +558,8 @@ final class GitStatusViewController: NSViewController {
     private func register(_ undo: GitUndo, name: String) {
         lastUndo = (undo, name)
         guard let manager = view.window?.undoManager else { return }
+        let step = manager.beginStep()
+        defer { manager.endStep(step) }
         manager.registerUndo(withTarget: self) { target in target.runUndo(undo) }
         manager.setActionName(name)
     }

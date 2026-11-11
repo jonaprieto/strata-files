@@ -27,6 +27,9 @@ package enum PlanExecutor {
         // One History entry for the whole plan, named like its undo action.
         let entry = transaction.hasChanges ? await transaction.record(actionName, history: history) : nil
         if let undo, transaction.hasChanges {
+            // The plan's undo and its History mark are one step.
+            let step = undo.beginStep()
+            defer { undo.endStep(step) }
             transaction.registerUndo(undo, actionName: undoName ?? OperationLog.displayName(actionName))
             if let entry { FileOps.registerLogMark(entry, undone: true, undo, history: history) }
         }

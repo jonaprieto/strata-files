@@ -335,6 +335,8 @@ package enum TransferUndo {
         }
         guard let undo, !receipt.isEmpty, !receipt.undoRegistered else { return }
         receipt.undoRegistered = true
+        let step = undo.beginStep()
+        defer { undo.endStep(step) }
         undo.registerUndo(withTarget: undo) { undo in
             MainActor.assumeIsolated {
                 receipt.wasUndone = true
