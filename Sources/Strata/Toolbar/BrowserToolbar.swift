@@ -9,7 +9,7 @@ final class BrowserToolbar {
     ]
     static let commands: [StrataCommand] = [
         .newFolder, .newFile, .moveToTrash, .copyToOtherPane, .moveToOtherPane, .compareWithOtherPane, .connectToServer,
-        .openInTerminal, .toggleQuickLook, .reloadFolder, .showCommandPalette, .toggleGitStatus, .toggleTerminalDrawer,
+        .openInTerminal, .toggleQuickLook, .reloadFolder, .showCommandPalette, .toggleGitStatus, .toggleTerminalDrawer, .toggleGitHistory,
     ]
     static func identifier(_ command: StrataCommand) -> NSToolbarItem.Identifier { .init("command." + command.id) }
     /// The label under a toolbar icon; the customization palette and the tooltip keep the full menu title.
@@ -21,6 +21,7 @@ final class BrowserToolbar {
         case StrataCommand.connectToServer.id: String(localized: "Connect", comment: "Toolbar button label: connect to a server")
         case StrataCommand.toggleGitStatus.id: String(localized: "Git")
         case StrataCommand.toggleTerminalDrawer.id: String(localized: "Terminal")
+        case StrataCommand.toggleGitHistory.id: String(localized: "History")
         default: command.title
         }
     }

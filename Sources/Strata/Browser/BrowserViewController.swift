@@ -876,6 +876,9 @@ final class BrowserViewController: NSViewController {
         if !isShowingResults, let directory, let git = services.git.snapshot(containing: directory) {
             parts.append(git.statusBarText)
         }
+        if !isShowingResults, let directory, let commit = GitSnapshotCache.commit(containing: directory)?.commit {
+            parts.append(String(localized: "Commit \(String(commit.prefix(7))), read only", comment: "Status bar: the pane shows a past commit's files"))
+        }
         if let volumeSpace, !isShowingResults {
             parts.append(String(localized: "\(Format.bytes(volumeSpace.free)) free", comment: "Status bar: physically free space on the folder’s disk"))
         }

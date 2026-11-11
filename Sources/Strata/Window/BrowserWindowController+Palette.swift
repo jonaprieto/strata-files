@@ -214,6 +214,8 @@ extension BrowserWindowController {
         commands.add(.copyRelativePath, keywords: ["Relative", "Repository", "Git"])
         commands.add(.copyName, keywords: ["Filename"])
         commands.add(.toggleGitStatus, keywords: ["Git", "Magit", "Stage", "Commit", "Diff", "Changes"])
+        commands.add(.toggleGitHistory, title: split.isHistoryShown ? String(localized: "Hide Git History") : String(localized: "Show Git History"),
+                     keywords: ["Git", "Log", "Graph", "Commits", "History", "Time"])
         commands.add(.toggleTerminalDrawer, title: split.terminal.isShown ? String(localized: "Hide Terminal") : String(localized: "Show Terminal"),
                      keywords: ["Shell", "Console", "Drawer", "Command Line"])
         commands.add(.toggleHiddenFiles, title: services.preferences.showHidden ? String(localized: "Hide Hidden Files") : String(localized: "Show Hidden Files"))

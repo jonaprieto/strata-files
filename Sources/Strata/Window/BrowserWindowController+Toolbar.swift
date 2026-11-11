@@ -51,6 +51,11 @@ extension BrowserWindowController: NSToolbarDelegate, NSToolbarItemValidation {
             let on = split.terminal.isShown
             item.toolTip = on ? String(localized: "Hide Terminal") : String(localized: "Show Terminal")
             item.image = NSImage(systemSymbolName: on ? "apple.terminal.fill" : "apple.terminal", accessibilityDescription: item.toolTip)
+        case StrataCommand.toggleGitHistory.id:
+            let on = split.isHistoryShown
+            item.toolTip = on ? String(localized: "Hide Git History") : String(localized: "Show Git History")
+            let accent = NSImage.SymbolConfiguration(paletteColors: [.controlAccentColor])
+            item.image = on ? command.image?.withSymbolConfiguration(accent) : command.image
         default:
             break
         }

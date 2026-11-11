@@ -875,8 +875,8 @@
   },
   {
     "file": "Strata/Dev/GitRepository.swift",
-    "find": "        return execute(hardening + overrides + arguments, in: directory, timeout: timeout, start: start)",
-    "replace": "        return execute(hardening + arguments, in: directory, timeout: timeout, start: start)",
+    "find": "        return execute(hardening + overrides + arguments, in: directory, timeout: timeout, start: start, environment: environment)",
+    "replace": "        return execute(hardening + arguments, in: directory, timeout: timeout, start: start, environment: environment)",
     "rule": "A browsed repository's filter drivers run",
     "tests": "GitSafetyTests"
   },
@@ -9828,5 +9828,26 @@
     "replace": "        undo.registerUndo(withTarget: undo) { target in",
     "rule": "Undo after Move to Trash stays off until another event",
     "tests": "UndoGroupingTests"
+  },
+  {
+    "file": "Strata/Containers/ContainerCopies.swift",
+    "find": "ArchiveCache.contains(url) || GitSnapshotCache.contains(url) ||",
+    "replace": "ArchiveCache.contains(url) ||",
+    "rule": "A past commit's snapshot can be changed",
+    "tests": "GitSnapshotTests/snapshotsAreReadOnlyToEveryCommand"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitSnapshots.swift",
+    "find": "        for (url, _) in snapshots.sorted(by: { $0.1 > $1.1 }).dropFirst(kept) where url != current {",
+    "replace": "        for (url, _) in snapshots.sorted(by: { $0.1 < $1.1 }).dropFirst(kept) where url != current {",
+    "rule": "Snapshot cleanup removes the newest snapshots",
+    "tests": "GitSnapshotTests/onlyTheNewestSnapshotsOfARepositoryAreKept"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitSnapshots.swift",
+    "find": "        let environment = [\"GIT_INDEX_FILE\": index.path]",
+    "replace": "        let environment: [String: String] = [:]",
+    "rule": "Making a snapshot changes the repository's index",
+    "tests": "GitSnapshotTests/aPastCommitsFilesAsTheyWere"
   }
 ]

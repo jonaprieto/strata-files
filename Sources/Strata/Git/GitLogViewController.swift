@@ -11,6 +11,8 @@ final class GitLogViewController: NSViewController {
     var onClose: () -> Void = {}
     var onShowDiff: (GitDiffKind, String) -> Void = { _, _ in }
     var onReset: (GitCommit) -> Void = { _ in }
+    /// A click on a commit (the history panel shows its files).
+    var onSelect: (GitCommit) -> Void = { _ in }
     /// Rebase from the selected commit (it and every newer one).
     var onRebase: (GitCommit) -> Void = { _ in }
     private(set) var commits: [GitCommit] = []
@@ -50,6 +52,7 @@ final class GitLogViewController: NSViewController {
         table.owner = self
         table.target = self
         table.doubleAction = #selector(showSelected)
+        table.action = #selector(clicked)
         table.setAccessibilityLabel(heading)
         let scroll = NSScrollView()
         scroll.documentView = table
@@ -95,6 +98,11 @@ final class GitLogViewController: NSViewController {
             self.table.reloadData()
             if skip == 0, !self.commits.isEmpty { self.table.selectRowIndexes([0], byExtendingSelection: false) }
         }
+    }
+
+    @objc private func clicked() {
+        guard let commit = commits[safe: table.clickedRow] else { return }
+        onSelect(commit)
     }
 
     var selectedCommits: [GitCommit] { table.selectedRowIndexes.compactMap { commits[safe: $0] } }

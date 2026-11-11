@@ -142,5 +142,11 @@
   "instance": "SecureStorage.Context.shared",
   "count": 1,
   "reason": "WebKit's compiled content rules are the same for every window and preview; keeping them in the app's caches only saves compiling them again."
+ },
+ {
+  "file": "Sources/Strata/Containers/GitSnapshotCache.swift",
+  "instance": "SecureStorage.Context.shared",
+  "count": 1,
+  "reason": "Past commits' snapshots are one cache for the app, like archives opened as folders: any window browsing a commit finds the same copy, kept in the app's caches."
  }
 ]

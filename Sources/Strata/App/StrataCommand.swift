@@ -84,6 +84,7 @@ struct StrataCommand {
     static let copyName = Self(String(localized: "Copy Name"), #selector(BrowserViewController.copyName(_:)), .browser, symbol: "textformat")
     static let copyRelativePath = Self(String(localized: "Copy Relative Path"), #selector(BrowserViewController.copyRelativePath(_:)), .browser, "c", [.command, .option, .shift], symbol: "link.badge.plus")
     static let toggleGitStatus = Self(String(localized: "Show Git Status"), #selector(BrowserViewController.toggleGitStatus(_:)), .browser, "g", [.command, .control], symbol: "arrow.trianglehead.branch")
+    static let toggleGitHistory = Self(String(localized: "Show Git History"), #selector(BrowserWindowController.toggleGitHistory(_:)), .window, "g", [.command, .option], symbol: "clock.arrow.trianglehead.counterclockwise.rotate.90")
     static let toggleTerminalDrawer = Self(String(localized: "Show Terminal"), #selector(BrowserWindowController.toggleTerminalDrawer(_:)), .window, "`", [.command, .control], symbol: "apple.terminal")
     static let biggerIcons = Self(String(localized: "Bigger Icons"), #selector(BrowserViewController.biggerIcons(_:)), .browser, "+", symbol: "plus.magnifyingglass")
     static let biggerIconsAlias = Self(String(localized: "Bigger Icons"), #selector(BrowserViewController.biggerIcons(_:)), .browser, "=", id: "biggerIcons:~1", symbol: "plus.magnifyingglass")

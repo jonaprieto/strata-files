@@ -166,14 +166,28 @@ package nonisolated enum GitRunner {
     private static let hardening = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null",
                                     "-c", "protocol.allow=never"]
 
-    package static func runBlocking(_ arguments: [String], in directory: URL, timeout: TimeInterval) -> GitRunResult {
+    /// The same, with `environment` laid over the hardened one: a temporary index (`GIT_INDEX_FILE`) for reading a commit
+    /// without touching the repository's own.
+    package static func run(_ arguments: [String], in directory: URL, timeout: TimeInterval,
+                            environment: [String: String]) async -> GitRunResult {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(returning: runBlocking(arguments, in: directory, timeout: timeout, environment: environment))
+            }
+        }
+    }
+
+    package static func runBlocking(_ arguments: [String], in directory: URL, timeout: TimeInterval,
+                                    environment extra: [String: String] = [:]) -> GitRunResult {
         let start = Date()
         // Fail closed: if the repository's filter drivers can't be listed, don't run git there at all.
         guard let overrides = repositoryFilterOverrides(in: directory, timeout: timeout) else {
             return GitRunResult(exitCode: -1, output: Data(), errorOutput: "couldn't read the repository's git config",
                                 timedOut: false, duration: Date().timeIntervalSince(start))
         }
-        return execute(hardening + overrides + arguments, in: directory, timeout: timeout, start: start)
+        var environment = hardenedEnvironment()
+        environment.merge(extra) { $1 }
+        return execute(hardening + overrides + arguments, in: directory, timeout: timeout, start: start, environment: environment)
     }
 
     /// Runs git as the repository's owner asked: its own hooks, filters and config, with locks, and `environment`

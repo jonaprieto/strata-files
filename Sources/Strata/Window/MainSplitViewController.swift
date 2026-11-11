@@ -10,6 +10,9 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
     let noticeBar = NoticeBar()
     /// The terminal drawer under the panes, hidden until asked for.
     let terminal = TerminalDrawerController()
+    /// The Git History panel between the files and the Inspector, collapsed until asked for.
+    let history: GitHistoryPanelController
+    let historyItem: NSSplitViewItem
     let inspectorItem: NSSplitViewItem
 
     init(firstPane: PaneHostViewController) {
@@ -19,6 +22,8 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         panes = PaneContainerViewController(first: firstPane)
         inspector = InspectorViewController(services: services)
         inspectorItem = NSSplitViewItem(inspectorWithViewController: inspector)
+        history = GitHistoryPanelController(services: services)
+        historyItem = NSSplitViewItem(viewController: history)
         super.init(nibName: nil, bundle: nil)
 
         // The minimums (100 + 120 + 100) fit inside the window's minimum width (320), so the panes never make the
@@ -62,11 +67,27 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
 
         addSplitViewItem(sidebarItem)
         addSplitViewItem(contentItem)
+        historyItem.minimumThickness = 220
+        historyItem.maximumThickness = 520
+        historyItem.holdingPriority = .init(260)
         addSplitViewItem(inspectorItem)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// The panel is in the split only while it shows: hidden, even a collapsed item keeps a divider, and the window's
+    /// smallest size would no longer fit.
+    var isHistoryShown: Bool { splitViewItems.contains(historyItem) }
+
+    func setHistoryShown(_ shown: Bool) {
+        guard shown != isHistoryShown else { return }
+        if shown {
+            insertSplitViewItem(historyItem, at: splitViewItems.firstIndex(of: inspectorItem) ?? splitViewItems.count)
+        } else {
+            removeSplitViewItem(historyItem)
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

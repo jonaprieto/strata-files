@@ -384,7 +384,7 @@ package nonisolated enum ContainerCopies {
 /// refusing a change inside a copy Strata keeps is never wrong.
 package nonisolated enum ReadOnlyCopies {
     package static func contains(_ url: URL, copies: CopyProviders) -> Bool {
-        ArchiveCache.contains(url) || ContainerCopyStore.shared.contains(url) || RemoteCopyStore.shared.contains(url)
+        ArchiveCache.contains(url) || GitSnapshotCache.contains(url) || ContainerCopyStore.shared.contains(url) || RemoteCopyStore.shared.contains(url)
             || copies.isClipboardStaging(url)
             || copies.contains(url) || copies.remoteCopies.contains(url) || copies.containerCopies.contains(url)
     }
