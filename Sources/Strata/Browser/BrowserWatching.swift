@@ -5,6 +5,8 @@ import Foundation
 /// folder or closing the pane replaces or stops both; a repository found late for a folder no longer shown is dropped.
 @MainActor final class BrowserWatching {
     private var watchers: [DirectoryWatcher] = []
+    /// Hear files rewritten in place, which change no entry of the folder.
+    private var contentWatchers: [FolderContentsWatcher] = []
     /// The folder being watched, once its read has said which folder it is.
     /// Ends once the watched folder's watchers are open: every read of it waits for that, so none misses a change
     /// made while it reads.
@@ -28,9 +30,10 @@ import Foundation
         self.folder = folder
         let opened = Self.open(folders, onChange: changed)
         opening = Task { [weak self] in
-            let watchers = await opened.value
+            let (watchers, contents) = await opened.value
             guard let self, !Task.isCancelled, isCurrent() else { return }
             self.watchers = watchers
+            self.contentWatchers = contents
         }
         ready = Self.ready(opened)
         finding = Task { [weak self] in
@@ -43,11 +46,14 @@ import Foundation
 
     /// Opened away from the main actor, so what waits for them never waits for it.
     nonisolated private static func open(_ folders: [URL], onChange: @escaping @MainActor @Sendable () -> Void)
-        -> Task<[DirectoryWatcher], Never> {
-        Task { await DirectoryWatcher.watching(folders, onChange: onChange) }
+        -> Task<([DirectoryWatcher], [FolderContentsWatcher]), Never> {
+        Task {
+            (await DirectoryWatcher.watching(folders, onChange: onChange),
+             await FolderContentsWatcher.watching(folders, onChange: onChange))
+        }
     }
 
-    nonisolated private static func ready(_ opened: Task<[DirectoryWatcher], Never>) -> Task<Void, Never> {
+    nonisolated private static func ready(_ opened: Task<([DirectoryWatcher], [FolderContentsWatcher]), Never>) -> Task<Void, Never> {
         Task { _ = await opened.value }
     }
 
@@ -56,6 +62,7 @@ import Foundation
         ready = nil
         opening?.cancel()
         watchers = []
+        contentWatchers = []
         finding?.cancel()
         git = nil
     }
