@@ -18,6 +18,8 @@ final class GitStatusCell: NSTableCellView {
     private let label = NSTextField(labelWithString: "")
     private var leading: NSLayoutConstraint!
     private var background: NSColor?
+    /// The row's text in its own colors, kept for when the row is no longer selected.
+    private var text = NSAttributedString()
 
     init() {
         super.init(frame: .zero)
@@ -44,7 +46,8 @@ final class GitStatusCell: NSTableCellView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
         text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
-        label.attributedStringValue = text
+        self.text = text
+        showText()
         // Set every time: a reused cell may come from a row with another count.
         label.maximumNumberOfLines = content.lines
         leading.constant = 8 + content.indent
@@ -52,6 +55,19 @@ final class GitStatusCell: NSTableCellView {
         label.setAccessibilityLabel(content.accessibility)
         background = content.background
         applyBackground()
+    }
+
+    /// On the selection's accent color, gray, green or blue text doesn't read: the whole row takes the selection's text
+    /// color, as AppKit gives plain labels.
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet { if backgroundStyle != oldValue { showText() } }
+    }
+
+    private func showText() {
+        guard backgroundStyle == .emphasized else { label.attributedStringValue = text; return }
+        let selected = NSMutableAttributedString(attributedString: text)
+        selected.addAttribute(.foregroundColor, value: NSColor.alternateSelectedControlTextColor, range: NSRange(location: 0, length: selected.length))
+        label.attributedStringValue = selected
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -159,4 +175,22 @@ extension GitStatusCell.Content {
 
 extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
+}
+
+/// The git lists' rows: a selection is a faint tint of the theme's selection color, so a row's text keeps its own
+/// colors (a diff line its red or green, a commit its branches) and an added or removed line's tint shows through it.
+/// With Increase Contrast the native selection, and its text color, come back.
+final class GitRowView: NSTableRowView {
+    private var native: Bool { ThemeStyle.highContrast || effectiveAppearance.isHighContrast }
+
+    override var interiorBackgroundStyle: NSView.BackgroundStyle {
+        native ? super.interiorBackgroundStyle : .normal
+    }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard !native else { return super.drawSelection(in: dirtyRect) }
+        guard selectionHighlightStyle != .none else { return }
+        ThemeStyle.selection(emphasized: isEmphasized).withAlphaComponent(isEmphasized ? 0.35 : 0.5).setFill()
+        NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 4, yRadius: 4).fill()
+    }
 }

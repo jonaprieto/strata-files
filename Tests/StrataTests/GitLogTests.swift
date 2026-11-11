@@ -8,6 +8,20 @@ import Testing
         GitCommit(id: id, parents: parents, author: "A", email: "a@a", date: Date(timeIntervalSince1970: 0), refs: [], subject: id)
     }
 
+    /// A commit's files from `--name-status -z`: one path, or two for a rename or copy; names with spaces and
+    /// newlines are read whole, and a truncated record is dropped.
+    @Test func aCommitsFilesAreReadWithHowTheyChanged() {
+        let output = ["M", "a", "A", "new file", "D", "gone\nline", "R087", "old", "sub/renamed", "C100", "src", "copy", "R100", "cut"]
+            .joined(separator: "\0") + "\0"
+        let files = GitNameStatus.parse(Data(output.utf8))
+        #expect(files.map(\.path) == ["a", "new file", "gone\nline", "sub/renamed", "copy"])
+        #expect(files.map(\.isNew) == [false, true, false, false, false])
+        #expect(files.map(\.isDeleted) == [false, false, true, false, false])
+        #expect(files.map(\.isRename) == [false, false, false, true, false])
+        #expect(files[3].oldPath == "old" && files[1].oldPath == nil && files[2].newPath == nil)
+        #expect(GitNameStatus.parse(Data()).isEmpty)
+    }
+
     @Test func recordsAreReadFieldByField() {
         let record = ["1111", "2222 3333", "Ana", "ana@x", "1700000000", "HEAD -> main, origin/main, tag: v1", "Fix it"]
             .joined(separator: "\u{1f}") + "\u{1e}\n"

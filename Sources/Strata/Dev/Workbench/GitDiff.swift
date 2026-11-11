@@ -25,6 +25,39 @@ package nonisolated struct GitFileDiff: Sendable, Equatable {
     package var allowsPartialStaging: Bool { !isNew && !isDeleted && !isBinary && !hunks.isEmpty }
 }
 
+/// A commit's files as `--name-status -z` lists them: a status letter (a rename or copy adds a score), then its path,
+/// or for a rename or copy the old path and the new one. Fields end in NUL, so any name is read whole.
+package nonisolated enum GitNameStatus {
+    package static func parse(_ output: Data) -> [GitFileDiff] {
+        var fields = output.split(separator: 0, omittingEmptySubsequences: false).map { String(decoding: $0, as: UTF8.self) }
+        // The last field ends in NUL too; what follows it is no field.
+        if fields.last == "" { fields.removeLast() }
+        var files: [GitFileDiff] = []
+        var index = 0
+        while index < fields.count {
+            let status = fields[index]
+            index += 1
+            guard let letter = status.first else { continue }
+            let paths = letter == "R" || letter == "C" ? 2 : 1
+            guard index + paths <= fields.count else { break }
+            var file = GitFileDiff()
+            if paths == 2 {
+                file.oldPath = fields[index]
+                file.newPath = fields[index + 1]
+                file.isRename = letter == "R"
+            } else {
+                file.isNew = letter == "A"
+                file.isDeleted = letter == "D"
+                file.oldPath = file.isNew ? nil : fields[index]
+                file.newPath = file.isDeleted ? nil : fields[index]
+            }
+            index += paths
+            files.append(file)
+        }
+        return files
+    }
+}
+
 package nonisolated struct GitHunk: Sendable, Equatable {
     package var oldStart: Int
     package var oldCount: Int

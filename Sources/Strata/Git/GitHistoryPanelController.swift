@@ -6,9 +6,9 @@ import StrataDev
 /// nearest one that existed then; Working Files brings the pane back. The repository itself is never changed.
 final class GitHistoryPanelController: NSViewController {
     private let services: BrowserServices
-    /// The active pane's folder, and how to show another in it.
+    /// The active pane's folder, and how to show another in it (selecting an item there).
     var paneFolder: () -> URL? = { nil }
-    var navigate: (URL) -> Void = { _ in }
+    var navigate: (URL, URL?) -> Void = { _, _ in }
     /// Shows a diff in the pane, which has room for it.
     var showDiff: (GitRepository, GitDiffKind, String) -> Void = { _, _, _ in }
     /// The commit a key moved to, shown once the keys rest.
@@ -30,6 +30,13 @@ final class GitHistoryPanelController: NSViewController {
     let workingFilesButton = NSButton(title: String(localized: "Working Files"), target: nil, action: nil)
     let emptyMessage = NSTextField(wrappingLabelWithString: String(localized: "The folder shown isn’t in a git repository."))
     private let logContainer = NSView()
+    /// The files the selected commit changed, under the history.
+    private(set) var files: [GitFileDiff] = []
+    private(set) var filesCommit: GitCommit?
+    private(set) var filesTask: Task<Void, Never>?
+    let filesTable = FilesTable()
+    private let filesHeading = NSTextField(labelWithString: "")
+    private let filesView = NSView()
 
     init(services: BrowserServices) {
         self.services = services
@@ -71,10 +78,17 @@ final class GitHistoryPanelController: NSViewController {
         stack.alignment = .leading
         stack.spacing = 3
         stack.edgeInsets = NSEdgeInsets(top: 10, left: 12, bottom: 6, right: 12)
-        for view in [stack, logContainer] as [NSView] {
+        // The header takes only its lines; the history and the files below take the rest.
+        stack.setHuggingPriority(.defaultHigh, for: .vertical)
+        // The history above, the selected commit's files below in a third of the panel.
+        let line = NSBox()
+        line.boxType = .separator
+        for view in [stack, logContainer, line, makeFilesView()] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(view)
         }
+        let third = filesView.heightAnchor.constraint(equalTo: root.heightAnchor, multiplier: 1.0 / 3)
+        third.priority = .defaultHigh
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor),
             stack.leadingAnchor.constraint(equalTo: root.leadingAnchor),
@@ -82,11 +96,61 @@ final class GitHistoryPanelController: NSViewController {
             logContainer.topAnchor.constraint(equalTo: stack.bottomAnchor),
             logContainer.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             logContainer.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            logContainer.bottomAnchor.constraint(equalTo: root.safeAreaLayoutGuide.bottomAnchor),
+            line.topAnchor.constraint(equalTo: logContainer.bottomAnchor),
+            line.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            line.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            filesView.topAnchor.constraint(equalTo: line.bottomAnchor),
+            filesView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            filesView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            filesView.bottomAnchor.constraint(equalTo: root.safeAreaLayoutGuide.bottomAnchor),
+            third,
+            filesView.heightAnchor.constraint(greaterThanOrEqualToConstant: 60),
+            logContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
         ])
         ThemeStyle.bind(root, to: .content)
         root.setAccessibilityLabel(String(localized: "Git History"))
         view = root
+    }
+
+    private func makeFilesView() -> NSView {
+        filesHeading.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+        filesHeading.textColor = .secondaryLabelColor
+        filesHeading.lineBreakMode = .byTruncatingTail
+        filesHeading.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        filesTable.addTableColumn(NSTableColumn(identifier: .init("file")))
+        filesTable.headerView = nil
+        filesTable.rowSizeStyle = .custom
+        filesTable.rowHeight = 22
+        filesTable.style = .plain
+        filesTable.intercellSpacing = .zero
+        filesTable.dataSource = self
+        filesTable.delegate = self
+        filesTable.target = self
+        filesTable.action = #selector(fileClicked)
+        filesTable.onReturn = { [weak self] in
+            guard let self, self.filesTable.selectedRow >= 0 else { return Sounds.beep() }
+            self.open(fileAt: self.filesTable.selectedRow)
+        }
+        filesTable.setAccessibilityLabel(String(localized: "Files changed in the selected commit"))
+        let scroll = NSScrollView()
+        scroll.documentView = filesTable
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        ThemeStyle.bind(scroll, to: .content)
+        for view in [filesHeading, scroll] as [NSView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            filesView.addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            filesHeading.topAnchor.constraint(equalTo: filesView.topAnchor, constant: 6),
+            filesHeading.leadingAnchor.constraint(equalTo: filesView.leadingAnchor, constant: 12),
+            filesHeading.trailingAnchor.constraint(lessThanOrEqualTo: filesView.trailingAnchor, constant: -12),
+            scroll.topAnchor.constraint(equalTo: filesHeading.bottomAnchor, constant: 4),
+            scroll.leadingAnchor.constraint(equalTo: filesView.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: filesView.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: filesView.bottomAnchor),
+        ])
+        return filesView
     }
 
     // MARK: - Following the pane
@@ -115,6 +179,7 @@ final class GitHistoryPanelController: NSViewController {
             log?.view.removeFromSuperview()
             log?.removeFromParent()
             log = nil
+            listFiles(of: nil)
             repository = found
             if let found { install(log: found) }
         }
@@ -135,6 +200,7 @@ final class GitHistoryPanelController: NSViewController {
             self?.show(commit)
         }
         log.onMove = { [weak self] commit in self?.showSoon(commit) }
+        log.onSelectionChange = { [weak self] commits in self?.listFiles(of: commits.count == 1 ? commits.first : nil) }
         log.onShowDiff = { [weak self] kind, title in
             guard let self, let repository = self.repository else { return }
             self.pendingMove?.cancel()
@@ -164,10 +230,10 @@ final class GitHistoryPanelController: NSViewController {
 
     // MARK: - Showing a commit
 
-    /// Shows `commit`'s files in the pane at the folder it shows now (or the nearest that existed then). A later
-    /// choice wins: an earlier one still being made is dropped.
+    /// Shows `commit`'s files in the pane at the folder it shows now (or the nearest that existed then), or at the
+    /// folder of `path` with it selected. A later choice wins: an earlier one still being made is dropped.
     @discardableResult
-    func show(_ commit: GitCommit) -> Task<Void, Never> {
+    func show(_ commit: GitCommit, selecting path: String? = nil) -> Task<Void, Never> {
         guard let repository else { return Task {} }
         generation += 1
         let mine = generation
@@ -178,7 +244,8 @@ final class GitHistoryPanelController: NSViewController {
                 self?.statusLabel.stringValue = String(localized: "Git couldn’t show \(commit.shortID).")
                 return Sounds.beep()
             }
-            let wanted = folder.map { folder in
+            let item = path.map { top.appending(path: $0) }
+            let wanted = item?.deletingLastPathComponent() ?? folder.map { folder in
                 GitSnapshotCache.commit(containing: folder).map { GitSnapshots.path(of: folder, from: $0.top, to: top) }
                     ?? GitSnapshots.path(of: folder, from: repository.root, to: top)
             } ?? top
@@ -186,7 +253,7 @@ final class GitHistoryPanelController: NSViewController {
             guard let self, mine == self.generation else { return }
             self.owners[top.path] = repository
             self.viewing = commit.id
-            self.navigate(target)
+            self.navigate(target, item)
             self.show(repository)
             self.announce(String(localized: "Showing the files of commit \(commit.shortID), read only"))
         }
@@ -206,7 +273,7 @@ final class GitHistoryPanelController: NSViewController {
             let target = await Self.nearestFolder(wanted, within: repository.root)
             guard let self, mine == self.generation else { return }
             self.viewing = nil
-            self.navigate(target)
+            self.navigate(target, nil)
             self.show(repository)
             self.announce(String(localized: "Showing the working files"))
         }
@@ -223,6 +290,47 @@ final class GitHistoryPanelController: NSViewController {
     }
 
     @objc private func workingFilesClicked() { showWorkingFiles() }
+
+    // MARK: - The selected commit's files
+
+    /// Lists what `commit` changed; nil (none or several selected) clears the list. A later selection wins.
+    private func listFiles(of commit: GitCommit?) {
+        filesTask?.cancel()
+        filesCommit = commit
+        guard let commit, let repository else {
+            files = []
+            filesTable.reloadData()
+            filesHeading.stringValue = String(localized: "Select a commit to see its files")
+            return
+        }
+        let workbench = GitWorkbench(repository: repository, writer: services.gitWriter)
+        filesTask = Task { [weak self] in
+            let found = await workbench.files(of: commit.id)
+            guard let self, !Task.isCancelled, self.filesCommit == commit else { return }
+            self.files = found ?? []
+            self.filesTable.reloadData()
+            self.filesHeading.stringValue = found == nil ? String(localized: "Git couldn’t list \(commit.shortID)’s files.")
+                : String(localized: "\(self.files.count) files changed in \(commit.shortID)", comment: "plural")
+        }
+    }
+
+    @objc private func fileClicked() {
+        guard filesTable.clickedRow >= 0 else { return }
+        open(fileAt: filesTable.clickedRow)
+    }
+
+    /// Shows the file in the pane, among its commit's files; a file the commit deleted isn't there, so the commit's
+    /// changes show instead.
+    @discardableResult
+    func open(fileAt row: Int) -> Task<Void, Never>? {
+        guard let commit = filesCommit, let file = files[safe: row], let repository else { return nil }
+        pendingMove?.cancel()
+        if file.isDeleted {
+            showDiff(repository, .commit(commit.id), String(localized: "Commit \(commit.shortID): \(commit.subject)"))
+            return nil
+        }
+        return show(commit, selecting: file.path)
+    }
 
     /// `url`, or the nearest folder above it that exists, never above `top`.
     @concurrent nonisolated private static func nearestFolder(_ url: URL, within top: URL) async -> URL {
@@ -244,7 +352,33 @@ final class GitHistoryPanelController: NSViewController {
     func stop() {
         lookup?.cancel()
         pendingMove?.cancel()
+        filesTask?.cancel()
         generation += 1
         log?.stop()
+    }
+}
+
+extension GitHistoryPanelController: NSTableViewDataSource, NSTableViewDelegate {
+    func numberOfRows(in tableView: NSTableView) -> Int { files.count }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { GitRowView() }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        guard let file = files[safe: row] else { return nil }
+        let cell = tableView.makeView(withIdentifier: GitStatusCell.identifier, owner: nil) as? GitStatusCell ?? GitStatusCell()
+        var content = GitStatusCell.Content.file(file.path, diff: file, section: .staged, expanded: nil)
+        // No disclosure here: the letter lines up near the heading's margin.
+        content.indent = 0
+        cell.show(content)
+        return cell
+    }
+
+    /// Return opens the selected file, as a click does.
+    final class FilesTable: NSTableView {
+        var onReturn: () -> Void = {}
+        override func keyDown(with event: NSEvent) {
+            if event.modifierFlags.intersection([.command, .control, .option]).isEmpty, event.characters == "\r" { return onReturn() }
+            super.keyDown(with: event)
+        }
     }
 }

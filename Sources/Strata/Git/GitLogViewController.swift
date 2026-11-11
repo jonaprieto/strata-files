@@ -15,6 +15,8 @@ final class GitLogViewController: NSViewController {
     var onSelect: (GitCommit) -> Void = { _ in }
     /// The selection moved by a key to `commit`.
     var onMove: (GitCommit) -> Void = { _ in }
+    /// The commits selected now, however the selection changed.
+    var onSelectionChange: ([GitCommit]) -> Void = { _ in }
     /// Two lines a commit, the subject alone on the first, for a narrow panel.
     var stacked = false
     /// Rebase from the selected commit (it and every newer one).
@@ -200,6 +202,10 @@ final class GitLogViewController: NSViewController {
 
 extension GitLogViewController: NSTableViewDataSource, NSTableViewDelegate {
     func numberOfRows(in tableView: NSTableView) -> Int { commits.count }
+
+    func tableViewSelectionDidChange(_ notification: Notification) { onSelectionChange(selectedCommits) }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { GitRowView() }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         if row >= commits.count - 50 { loadMore() }

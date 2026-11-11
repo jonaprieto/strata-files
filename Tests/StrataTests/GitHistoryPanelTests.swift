@@ -236,13 +236,83 @@ import Testing
         root.layoutSubtreeIfNeeded()
         func all(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(all) }
         let labels = all(root).compactMap { $0 as? NSTextField }.filter { !$0.isHidden && !$0.stringValue.isEmpty && $0.superview?.isHidden == false }
-            .filter { $0.isDescendant(of: panel.log?.view ?? NSView()) == false }
+            .filter { !$0.isDescendant(of: panel.log?.view ?? NSView()) && !$0.isDescendant(of: panel.filesTable) }
         #expect(labels.count >= 3)
         for label in labels {
             let frame = label.convert(label.bounds, to: root)
             // A label's frame sits 2 points outside its text, which starts at the 12-point margin.
             #expect(frame.minX >= 9 && frame.maxX <= 220 - 9, "\(label.stringValue): \(frame)")
         }
+        withExtendedLifetime(environment) {}
+    }
+
+    /// Under the commits, the files the selected one changed, with how; moving to another commit lists its files.
+    /// Clicking one shows it in the pane, in that commit's files; a deleted one shows the commit's changes instead.
+    @Test func theSelectedCommitsFilesAreListedAndOpenInThePane() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        await panel.filesTask?.value
+        #expect(panel.files.map(\.path) == ["a", "sub/new", "sub/old"])
+        #expect(panel.files.map { $0.isNew } == [false, true, false] && panel.files.map { $0.isDeleted } == [false, false, true])
+        #expect(panel.filesTable.numberOfRows == 3)
+
+        #expect(log.handleKey("n"))
+        await panel.filesTask?.value
+        #expect(panel.files.map(\.path) == ["a", "sub/old"])
+        await panel.pendingMove?.value
+
+        // The newest commit's added file, shown in the pane in that commit's files.
+        #expect(log.handleKey("p"))
+        await panel.filesTask?.value
+        await panel.open(fileAt: 1)?.value
+        await owner.browser.directoryReads.task?.value
+        #expect(panel.viewing == log.commits[0].id)
+        #expect(owner.browser.selectedURLs.map(\.lastPathComponent) == ["new"])
+        #expect(owner.browser.directory.map { GitSnapshotCache.commit(containing: $0)?.commit } == log.commits[0].id)
+
+        // The deleted file isn't in the commit's files: its changes show instead.
+        _ = panel.open(fileAt: 2)
+        #expect(owner.browser.gitStatus?.diffView?.kind == .commit(log.commits[0].id))
+        withExtendedLifetime(environment) {}
+    }
+
+    /// A selected row is a faint tint of the selection color, so its text keeps its own colors (and a diff line its red
+    /// or green). With Increase Contrast the native selection returns, and every part of the row then reads in the
+    /// selection's text color; unselected again, the id, branches and date get their own colors back.
+    @Test func aSelectedCommitReadsOnTheSelectionColor() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        let cell = try #require(log.tableView(log.table, viewFor: log.table.tableColumns.last, row: 0) as? NSTableCellView)
+        func colors() -> [NSColor] {
+            let text = cell.textField?.attributedStringValue ?? NSAttributedString()
+            var found: [NSColor] = []
+            text.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: text.length)) { value, _, _ in
+                if let color = value as? NSColor { found.append(color) }
+            }
+            return found
+        }
+        let plain = colors()
+        #expect(plain.contains(.secondaryLabelColor) && plain.contains(.tertiaryLabelColor))
+        for table in [log.table, panel.filesTable] {
+            let row = try #require(table.delegate?.tableView?(table, rowViewForRow: 0) as? GitRowView)
+            row.isSelected = true
+            row.isEmphasized = true
+            #expect(row.interiorBackgroundStyle == .normal)
+        }
+        cell.backgroundStyle = .emphasized
+        #expect(!colors().isEmpty && colors().allSatisfy { $0 == .alternateSelectedControlTextColor })
+        cell.backgroundStyle = .normal
+        #expect(colors() == plain)
         withExtendedLifetime(environment) {}
     }
 
