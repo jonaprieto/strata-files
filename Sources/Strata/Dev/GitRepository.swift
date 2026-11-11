@@ -176,6 +176,21 @@ package nonisolated enum GitRunner {
         return execute(hardening + overrides + arguments, in: directory, timeout: timeout, start: start)
     }
 
+    /// Runs git as the repository's owner asked: its own hooks, filters and config, with locks, and `environment`
+    /// laid over this process's (minus what could point git elsewhere). Only for repositories the user trusts.
+    @concurrent
+    package static func runConfigured(_ arguments: [String], in directory: URL, environment: [String: String],
+                                      timeout: TimeInterval) async -> GitRunResult {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var merged = baseEnvironment()
+                merged.merge(environment) { $1 }
+                continuation.resume(returning: execute(arguments, in: directory, timeout: timeout, start: Date(),
+                                                       environment: merged, readOnly: false))
+            }
+        }
+    }
+
     /// Browsing never runs filters, including global drivers whose behavior can depend on repository config.
     /// Unrepresentable driver names fail closed rather than leaving a differently spelled command enabled.
     private static func repositoryFilterOverrides(in directory: URL, timeout: TimeInterval) -> [String]? {
@@ -213,15 +228,16 @@ package nonisolated enum GitRunner {
         }
     }
 
-    private static func execute(_ arguments: [String], in directory: URL, timeout: TimeInterval, start: Date) -> GitRunResult {
+    private static func execute(_ arguments: [String], in directory: URL, timeout: TimeInterval, start: Date,
+                                environment: [String: String]? = nil, readOnly: Bool = true) -> GitRunResult {
         guard let executable else {
             return GitRunResult(exitCode: -1, output: Data(), errorOutput: "git not found", timedOut: false, duration: 0)
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = ["--no-optional-locks", "-C", directory.path] + arguments
+        process.arguments = (readOnly ? ["--no-optional-locks"] : []) + ["-C", directory.path] + arguments
         process.currentDirectoryURL = directory
-        process.environment = hardenedEnvironment()
+        process.environment = environment ?? hardenedEnvironment()
         let stdout = PipeCollector()
         let stderr = PipeCollector()
         process.standardOutput = stdout.pipe
@@ -251,6 +267,15 @@ package nonisolated enum GitRunner {
     /// This process's environment, without what could point git at another repository or undo the hardening of its
     /// arguments, and with no locks, fetches, transports or prompts, in plain C.
     private static func hardenedEnvironment() -> [String: String] {
+        var environment = baseEnvironment()
+        environment["GIT_OPTIONAL_LOCKS"] = "0"
+        environment["GIT_NO_LAZY_FETCH"] = "1"
+        return environment
+    }
+
+    /// This process's environment without what could point git at another repository or override its config, with
+    /// no transports or prompts, in plain C.
+    private static func baseEnvironment() -> [String: String] {
         var environment = ProcessInfo.processInfo.environment
         // Never let an inherited GIT_DIR (Strata launched from a hook or a git alias) point us at another repository.
         // Nor inherited config overrides that could undo the hardening above.
@@ -258,10 +283,8 @@ package nonisolated enum GitRunner {
                     "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"] {
             environment[key] = nil
         }
-        environment["GIT_OPTIONAL_LOCKS"] = "0"
-        environment["GIT_NO_LAZY_FETCH"] = "1"
         // An empty allow-list permits no transport and, unlike `protocol.allow`, a repository's own
-        // `protocol.<name>.allow` can't override it.
+        // `protocol.<name>.allow` can't override it. Fetch and push lay their own allow-list over this.
         environment["GIT_ALLOW_PROTOCOL"] = ""
         environment["GIT_TERMINAL_PROMPT"] = "0"
         environment["LC_ALL"] = "C"

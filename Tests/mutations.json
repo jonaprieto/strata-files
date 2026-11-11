@@ -9743,5 +9743,19 @@
     "replace": "guard validateCommand(command, item: item), let target",
     "rule": "Dired keys: a key from another pane runs on the focused pane's selection",
     "tests": "DiredKeysTests/aKeyFromThePaneWithoutTheFocusChangesNothing"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitWriter.swift",
+    "find": "        guard await trust.isTrusted(repository) else { return .failure(.untrusted) }",
+    "replace": "        _ = await trust.isTrusted(repository)",
+    "rule": "Git writes run in an untrusted repository",
+    "tests": "GitWriterTests"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitWriter.swift",
+    "find": "        guard !running.contains(root) else { return .failure(.busy) }",
+    "replace": "",
+    "rule": "Git writes run two at a time in one repository",
+    "tests": "GitWriterTests/aSecondCommandWhileOneRunsIsRefused"
   }
 ]

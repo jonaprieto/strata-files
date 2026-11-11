@@ -49,13 +49,14 @@ final class BrowserServices {
                            openContainer: (@MainActor @Sendable (String) async throws -> URL)? = nil,
                            tags: TagStore? = nil, cloud: CloudStore? = nil, git: GitStatusStore? = nil,
                            index: FileIndex? = nil, contentIndex: SemanticIndex? = nil,
-                           showSetting: @escaping @MainActor (SettingID) -> Void = { _ in }) -> BrowserServices {
+                           showSetting: @escaping @MainActor (SettingID) -> Void = { _ in },
+                           gitEnvironment: [String: String] = GitWriter.isolatedEnvironment) -> BrowserServices {
         BrowserServices(transfers: transfers, visits: visits, directories: directories, windows: windows,
                         volumeSpace: volumeSpace, remote: remote, remoteBrowsing: remoteBrowsing,
                         containers: containers, containerStore: containerStore, clipboard: clipboard,
                         mediaReader: mediaReader, mediaDetailsReader: mediaDetailsReader, mediaAnalysis: mediaAnalysis, thumbnails: thumbnails, itemInfo: itemInfo,
                         cloudFolders: cloudFolders, openContainer: openContainer, tags: tags, cloud: cloud, git: git,
-                        index: index, contentIndex: contentIndex, showSetting: showSetting)
+                        index: index, contentIndex: contentIndex, showSetting: showSetting, gitEnvironment: gitEnvironment)
     }
 
     let preferences: Prefs
@@ -94,6 +95,12 @@ final class BrowserServices {
     let tags: TagStore
     let cloud: CloudStore
     let git: GitStatusStore
+    /// The git commands that change a repository; refused in repositories this environment's preferences don't trust.
+    private(set) lazy var gitWriter = GitWriter(
+        trust: GitTrust(defaults: preferences.defaults, notifications: preferences.notifications),
+        notifications: preferences.notifications, environment: gitEnvironment
+    ) { [weak git] repository in git?.refresh(repository, force: true) }
+    private let gitEnvironment: [String: String]
     let index: FileIndex
     let contentIndex: SemanticIndex
     var statuses: FileStatuses { FileStatuses(tags: tags, cloud: cloud, git: git) }
@@ -109,9 +116,11 @@ final class BrowserServices {
                  cloudFolders: @escaping @Sendable () async -> [CloudFolder] = { [] },
                  openContainer: (@MainActor @Sendable (String) async throws -> URL)? = nil,
                  tags: TagStore? = nil, cloud: CloudStore? = nil, git: GitStatusStore? = nil, index: FileIndex? = nil,
-                 contentIndex: SemanticIndex? = nil, showSetting: @escaping @MainActor (SettingID) -> Void) {
+                 contentIndex: SemanticIndex? = nil, showSetting: @escaping @MainActor (SettingID) -> Void,
+                 gitEnvironment: [String: String] = [:]) {
         self.preferences = transfers.preferences
         self.showSetting = showSetting
+        self.gitEnvironment = gitEnvironment
         self.transfers = transfers
         self.files = FileCommands(transfers: transfers)
         self.visits = visits
