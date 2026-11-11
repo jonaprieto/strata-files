@@ -15,6 +15,76 @@ import Testing
         #expect(TerminalText.changeDirectory(to: URL(fileURLWithPath: "/Users/me/my repo")) == "cd '/Users/me/my repo'")
     }
 
+    /// Shown again from another folder, an idle shell goes there; one running a program is left alone, and a shell
+    /// already there is too.
+    @Test func anIdleShellFollowsThePaneWhenShownAgain() {
+        let folder = URL(fileURLWithPath: "/Users/me/my repo")
+        #expect(TerminalText.follow(to: folder, shellIn: "/Users/me", atPrompt: true) == "\u{05}\u{15} cd '/Users/me/my repo'\r")
+        #expect(TerminalText.follow(to: folder, shellIn: "/Users/me", atPrompt: false) == nil)
+        #expect(TerminalText.follow(to: folder, shellIn: "/Users/me/my repo", atPrompt: true) == nil)
+        #expect(TerminalText.follow(to: folder, shellIn: "/Users/me/my repo/", atPrompt: true) == nil)
+        #expect(TerminalText.follow(to: URL(fileURLWithPath: "/var/x"), shellIn: "/private/var/x", atPrompt: true) == nil)
+        #expect(TerminalText.follow(to: nil, shellIn: "/Users/me", atPrompt: true) == nil)
+        #expect(TerminalText.follow(to: URL(fileURLWithPath: "/tmp/a\rb"), shellIn: "/Users/me", atPrompt: true) == nil)
+    }
+
+    /// The shell's folder and whether a program is in front, read from a real shell (sh, not the login shell).
+    @Test func theShellsFolderAndPromptAreReadFromTheSystem() async throws {
+        let tree = try TestTree("a/")
+        let drawer = TerminalDrawerController()
+        _ = drawer.view
+        drawer.terminal.startProcess(executable: "/bin/sh", args: [], environment: ["PATH=/usr/bin:/bin", "PS1=$ "], execName: nil,
+                                     currentDirectory: tree.url("a").path)
+        defer { drawer.terminal.terminate() }
+        // A shell starting and a program taking over can be slow while other suites run; each wait ends once it holds.
+        for _ in 0..<3000 where drawer.shellState().folder == nil { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(drawer.shellState().folder.map { PathSpelling.short(URL(fileURLWithPath: $0)) } == PathSpelling.short(tree.url("a")))
+        #expect(drawer.shellState().atPrompt)
+        // A program in front of the shell has the terminal: the shell isn't at its prompt.
+        drawer.terminal.send(txt: "sleep 30\r")
+        for _ in 0..<3000 where drawer.shellState().atPrompt { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(!drawer.shellState().atPrompt)
+        withExtendedLifetime(tree) {}
+    }
+
+    @Test func showingTheDrawerAgainTakesTheShellToThePanesFolder() async throws {
+        let tree = try TestTree("a/", "b/")
+        let environment = try IndependentEnvironment()
+        let owner = BrowserWindowController(location: tree.url("a"), services: environment.services)
+        owner.window?.setFrameAutosaveName("")
+        owner.split.splitView.autosaveName = nil
+        defer {
+            owner.window?.contentViewController = nil
+            owner.panes.forEach { $0.stopBackgroundWork() }
+        }
+        await owner.browser.directoryReads.task?.value
+        let drawer = owner.split.terminal
+        var typed: [String] = []
+        var shell = (folder: Optional(tree.url("a").path), atPrompt: true)
+        drawer.startShell = { _, _ in }
+        drawer.shellState = { shell }
+        drawer.type = { typed.append($0) }
+
+        owner.toggleTerminalDrawer(nil)
+        owner.toggleTerminalDrawer(nil)
+        owner.navigate(to: tree.url("b"))
+        await owner.browser.directoryReads.task?.value
+        shell.atPrompt = false
+        owner.toggleTerminalDrawer(nil)
+        #expect(typed.isEmpty, "A program is running in the shell: nothing is typed into it.")
+        owner.toggleTerminalDrawer(nil)
+        shell.atPrompt = true
+        owner.toggleTerminalDrawer(nil)
+        #expect(typed == [TerminalText.follow(to: try #require(owner.browser.directory), shellIn: tree.url("a").path, atPrompt: true)])
+        #expect(typed.first?.contains("/b'") == true)
+        // Shown again where the shell already is: nothing more.
+        shell.folder = tree.url("b").path
+        owner.toggleTerminalDrawer(nil)
+        owner.toggleTerminalDrawer(nil)
+        #expect(typed.count == 1)
+        withExtendedLifetime((tree, environment)) {}
+    }
+
     @Test func theDrawerStartsOneShellInThePanesFolderAndHides() async throws {
         let tree = try TestTree("a/")
         let environment = try IndependentEnvironment()

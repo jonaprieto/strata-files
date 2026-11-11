@@ -1,7 +1,8 @@
 import AppKit
 import SwiftTerm
 
-/// What the terminal drawer types for the user, as plain functions. Nothing ends in Return: the user runs it.
+/// What the terminal drawer types for the user, as plain functions. Only taking an idle shell to the pane's folder ends
+/// in Return; everything else waits for the user to run it.
 enum TerminalText {
     /// Dropped items as shell-quoted paths, each followed by a space. Nil when a name holds a control character,
     /// which a shell's line editor could read as Return or another key.
@@ -17,6 +18,26 @@ enum TerminalText {
         paths([folder]).map { "cd " + $0.trimmingCharacters(in: .whitespaces) }
     }
 
+    /// Takes a shell waiting at its prompt to `folder`: Ctrl-E Ctrl-U clear anything typed there, and the leading space
+    /// keeps the line out of a history that ignores such lines. Nil while a program runs in the shell (the keys would go
+    /// to it), when the shell is already there, or when the folder's name can't be typed safely.
+    static func follow(to folder: URL?, shellIn current: String?, atPrompt: Bool) -> String? {
+        guard atPrompt, let folder, let text = changeDirectory(to: folder) else { return nil }
+        // ponytail: compared as spelled (/private/var as /var); a folder reached through another link is typed again.
+        if let current, PathSpelling.short(URL(fileURLWithPath: current)) == PathSpelling.short(folder) { return nil }
+        return "\u{05}\u{15} " + text + "\r"
+    }
+
+    /// The working folder of process `pid`, as the system has it.
+    static func folder(of pid: pid_t) -> String? {
+        var info = proc_vnodepathinfo()
+        let size = Int32(MemoryLayout<proc_vnodepathinfo>.size)
+        guard pid > 0, proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &info, size) == size else { return nil }
+        return withUnsafeBytes(of: info.pvi_cdir.vip_path) { bytes in
+            bytes.bindMemory(to: CChar.self).baseAddress.map { String(cString: $0) }
+        }
+    }
+
     /// The user's login shell, or zsh.
     static var shell: String {
         if let entry = getpwuid(getuid()), let shell = entry.pointee.pw_shell {
@@ -27,8 +48,9 @@ enum TerminalText {
     }
 }
 
-/// A terminal under the panes, one per window, started the first time it's shown, in the active pane's folder.
-/// Files dropped on it are typed as quoted paths; "Go to Pane Folder" types a `cd` there. Both wait for Return.
+/// A terminal under the panes, one per window, started the first time it's shown, in the active pane's folder; shown
+/// again, a shell idle at its prompt goes to the active pane's folder. Files dropped on it are typed as quoted paths;
+/// "Go to Pane Folder" types a `cd` there. Both wait for Return.
 final class TerminalDrawerController: NSViewController {
     static let defaultHeight: CGFloat = 220
 
@@ -38,6 +60,13 @@ final class TerminalDrawerController: NSViewController {
     }
     /// The active pane's folder, for "Go to Pane Folder" and where the shell starts.
     var paneFolder: () -> URL? = { nil }
+    /// The shell's folder, and whether it waits at its prompt with no program in front; tests set it.
+    lazy var shellState: () -> (folder: String?, atPrompt: Bool) = { [weak self] in
+        guard let process = self?.terminal.process, process.running else { return (nil, false) }
+        return (TerminalText.folder(of: process.shellPid), tcgetpgrp(process.childfd) == process.shellPid)
+    }
+    /// Types into the shell; tests record it instead.
+    lazy var type: (String) -> Void = { [weak self] text in self?.terminal.send(txt: text) }
     private(set) var isShown = false
     private(set) var hasStarted = false
     private(set) var heightConstraint: NSLayoutConstraint!
@@ -108,13 +137,23 @@ final class TerminalDrawerController: NSViewController {
         isShown = true
         view.isHidden = false
         heightConstraint.constant = shownHeight
+        let folder = paneFolder()
         if !hasStarted {
             hasStarted = true
-            let folder = paneFolder()
-            titleLabel.stringValue = folder.map { String(localized: "Terminal: \($0.lastPathComponent)") } ?? String(localized: "Terminal")
+            showTitle(folder)
             startShell(terminal, folder)
+        } else {
+            let shell = shellState()
+            if let text = TerminalText.follow(to: folder, shellIn: shell.folder, atPrompt: shell.atPrompt) {
+                type(text)
+                showTitle(folder)
+            }
         }
         view.window?.makeFirstResponder(terminal)
+    }
+
+    private func showTitle(_ folder: URL?) {
+        titleLabel.stringValue = folder.map { String(localized: "Terminal: \($0.lastPathComponent)") } ?? String(localized: "Terminal")
     }
 
     func hide() {
