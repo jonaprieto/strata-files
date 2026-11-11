@@ -41,6 +41,31 @@ import Testing
         #expect(repo.text("a") == "uncommitted\n")
     }
 
+    /// Checked-out files would all read as made just now; they carry the commit's date, as the log shows it, and a
+    /// link's own date changes, never what it points to.
+    @Test func aSnapshotsFilesAreDatedByTheirCommit() async throws {
+        let outside = try TestTree("target")
+        let before = try Self.modified(outside.url("target"))
+        let repo = try await GitFixture(["a": "1\n", "sub/b": "b\n"])
+        try FileManager.default.createSymbolicLink(atPath: repo.url("link").path, withDestinationPath: outside.url("target").path)
+        try await repo.git("add", "-A")
+        try await repo.git("commit", "-q", "-m", "dated", "--date=@1000000000")
+        let id = try await repo.git("rev-parse", "HEAD").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let top = try #require(await GitSnapshots.make(repo.repository, commit: id))
+        let dated = Date(timeIntervalSince1970: 1_000_000_000)
+        for path in ["a", "sub", "sub/b", "link"] { #expect(try Self.modified(top.appending(path: path)) == dated, "\(path)") }
+        #expect(try Self.modified(outside.url("target")) == before)
+        withExtendedLifetime(outside) {}
+    }
+
+    /// The item's own date, without following a link.
+    private static func modified(_ url: URL) throws -> Date {
+        var info = stat()
+        guard lstat(url.path, &info) == 0 else { throw CocoaError(.fileReadNoSuchFile) }
+        return Date(timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec))
+    }
+
     @Test func snapshotsAreReadOnlyToEveryCommand() async throws {
         let (repo, first, _) = try await history()
         let top = try #require(await GitSnapshots.make(repo.repository, commit: first))

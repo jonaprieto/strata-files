@@ -9849,5 +9849,12 @@
     "replace": "        let environment: [String: String] = [:]",
     "rule": "Making a snapshot changes the repository's index",
     "tests": "GitSnapshotTests/aPastCommitsFilesAsTheyWere"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitSnapshots.swift",
+    "find": "        for path in paths.reversed() { lutimes(staging.appending(path: path).path, &times) }",
+    "replace": "        for path in paths.reversed() { utimes(staging.appending(path: path).path, &times) }",
+    "rule": "Dating a snapshot's files changes what a link points to",
+    "tests": "GitSnapshotTests/aSnapshotsFilesAreDatedByTheirCommit"
   }
 ]
