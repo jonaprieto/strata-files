@@ -9807,5 +9807,19 @@
     "replace": "        guard true else {",
     "rule": "Git rebase runs a plan that leaves commits out",
     "tests": "GitRebaseTests"
+  },
+  {
+    "file": "Strata/Support/DirectoryWatcher.swift",
+    "find": "Self.isRewrite($0.flags) && ($0.path as NSString).deletingLastPathComponent == folder",
+    "replace": "false && ($0.path as NSString).deletingLastPathComponent == folder",
+    "rule": "Watching a folder misses files rewritten in place",
+    "tests": "BrowserWatchingTests"
+  },
+  {
+    "file": "Strata/Support/DirectoryWatcher.swift",
+    "find": "        return max(seconds(info.st_mtimespec), seconds(info.st_ctimespec)) >= start",
+    "replace": "        return true",
+    "rule": "Watching a folder reads it again for changes made before it was shown",
+    "tests": "BrowserWatchingTests/aFileRewrittenInPlaceReadsTheFolderAgain"
   }
 ]
