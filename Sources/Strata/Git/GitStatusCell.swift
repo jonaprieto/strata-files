@@ -9,10 +9,13 @@ final class GitStatusCell: NSTableCellView {
         var text: NSAttributedString
         var accessibility: String
         var indent: CGFloat
+        /// A faint fill across the row, for added and removed lines.
+        var background: NSColor? = nil
     }
 
     private let label = NSTextField(labelWithString: "")
     private var leading: NSLayoutConstraint!
+    private var background: NSColor?
 
     init() {
         super.init(frame: .zero)
@@ -33,10 +36,33 @@ final class GitStatusCell: NSTableCellView {
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
     func show(_ content: Content) {
-        label.attributedStringValue = content.text
+        // An attributed string's own paragraph style wins over the label's line break mode, and its default wraps:
+        // in a narrow panel a row would run into the next one.
+        let text = NSMutableAttributedString(attributedString: content.text)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
+        label.attributedStringValue = text
+        // A reused cell may come from a commit message's rows, which show several lines.
+        label.maximumNumberOfLines = 1
         leading.constant = 8 + content.indent
         setAccessibilityLabel(content.accessibility)
         label.setAccessibilityLabel(content.accessibility)
+        background = content.background
+        applyBackground()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyBackground()
+    }
+
+    private func applyBackground() {
+        guard let background else { layer?.backgroundColor = nil; return }
+        wantsLayer = true
+        var color: CGColor?
+        effectiveAppearance.performAsCurrentDrawingAppearance { color = background.cgColor }
+        layer?.backgroundColor = color
     }
 }
 
@@ -104,7 +130,13 @@ extension GitStatusCell.Content {
         case .noNewline: ("\\", .tertiaryLabelColor, String(localized: "No newline at end of file"))
         }
         let text = NSAttributedString(string: prefix + line.text, attributes: [.foregroundColor: color, .font: mono])
-        return .init(text: text, accessibility: spoken, indent: 28)
+        // Faint enough that a selected line still shows its selection through it.
+        let fill: NSColor? = switch line.kind {
+        case .added: GitColors.added.withAlphaComponent(0.12)
+        case .removed: GitColors.deleted.withAlphaComponent(0.12)
+        case .context, .noNewline: nil
+        }
+        return .init(text: text, accessibility: spoken, indent: 28, background: fill)
     }
 
     private static func describe(_ diff: GitFileDiff?, section: GitStatusSection) -> (String, NSColor, String) {

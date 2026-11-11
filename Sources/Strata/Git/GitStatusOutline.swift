@@ -37,6 +37,15 @@ package enum GitStatusRow: Equatable {
         case .section, .clean: nil
         }
     }
+
+    /// The row without what a reload changes (a file's diff, a section's count), so a selection survives it.
+    var identity: GitStatusRow {
+        switch self {
+        case .file(let section, let path, _): .file(section, path: path, diff: nil)
+        case .section(let section, _): .section(section, count: 0)
+        case .hunk, .line, .clean: self
+        }
+    }
 }
 
 /// What the status view shows and what its commands do with the selection, as plain functions.

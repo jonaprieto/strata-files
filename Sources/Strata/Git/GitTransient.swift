@@ -30,10 +30,18 @@ final class GitTransient: NSViewController {
         popover.behavior = .transient
         popover.contentViewController = content
         content.popover = popover
-        let anchor = view.visibleRect.isEmpty ? view.bounds : NSRect(x: view.visibleRect.midX, y: view.visibleRect.minY + 4, width: 1, height: 1)
-        popover.show(relativeTo: anchor, of: view, preferredEdge: .maxY)
+        popover.show(relativeTo: anchor(in: view), of: view, preferredEdge: .maxY)
         window.makeFirstResponder(content.view)
         return content
+    }
+
+    /// Beside the selected row, where the keys will act; otherwise at the top of what shows.
+    static func anchor(in view: NSView) -> NSRect {
+        if let table = view as? NSTableView, table.selectedRow >= 0 {
+            let row = table.rect(ofRow: table.selectedRow)
+            if table.visibleRect.isEmpty || table.visibleRect.intersects(row) { return row }
+        }
+        return view.visibleRect.isEmpty ? view.bounds : NSRect(x: view.visibleRect.midX, y: view.visibleRect.minY + 4, width: 1, height: 1)
     }
 
     override func loadView() {

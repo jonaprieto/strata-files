@@ -411,4 +411,213 @@ import Testing
         #expect(browser.gitStatus == nil)
         withExtendedLifetime((environment, elsewhere)) {}
     }
+
+    // MARK: - Usability
+
+    @Test func onlyNPAndArrowsMoveAndKStillAsksToDiscard() async throws {
+        let repo = try await GitFixture(["a": "1\n", "b": "1\n"])
+        try repo.write("a", "2\n")
+        try repo.write("b", "2\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        select(status) { $0.path == "a" }
+        let before = status.table.selectedRowIndexes
+        #expect(!status.handleKey("j"))
+        #expect(status.table.selectedRowIndexes == before)
+        var asked = false
+        status.prompts.confirm = { _, _, _, _ in asked = true; return false }
+        #expect(status.handleKey("k"))
+        await settle(status)
+        #expect(asked && status.table.selectedRowIndexes == before)
+        #expect(status.handleKey("n"))
+        #expect(status.selectedRows.first?.path == "b")
+        #expect(repo.text("a") == "2\n" && repo.text("b") == "2\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func stagingMovesOnToTheNextFileAndAnEditedFileStaysSelected() async throws {
+        let repo = try await GitFixture(["a": "1\n", "b": "1\n", "c": "1\n"])
+        for name in ["a", "b", "c"] { try repo.write(name, "2\n") }
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        select(status) { $0.path == "b" }
+        #expect(status.handleKey("s"))
+        await settle(status)
+        #expect(try await repo.git("diff", "--cached", "--name-only") == "b\n")
+        #expect(status.selectedRows.map(\.path) == ["c"])
+
+        // The selected file's diff changes on disk while a file above it goes back to unchanged: it stays the one
+        // selected, not whichever row is now where it was.
+        try repo.write("a", "1\n")
+        try repo.write("c", "3\n")
+        status.reload()
+        await settle(status)
+        #expect(status.status?.unstaged.first { $0.path == "c" }?.hunks.first?.lines.contains { $0.text == "3" } == true)
+        #expect(status.selectedRows.map(\.path) == ["c"])
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func keyLinesSayWhatEachViewDoes() async throws {
+        let repo = try await GitFixture(["a": "1\n"])
+        try repo.write("a", "2\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        #expect(status.hintLabel.stringValue.contains("s stage"))
+        #expect(!status.hintLabel.isHidden)
+        status.showLog(all: false)
+        let log = try #require(status.logView)
+        _ = log.view
+        await log.loadTask?.value
+        #expect(log.hint?.contains("x reset") == true)
+        #expect(log.hintLabel.isHidden == false)
+        // The panel's log runs none of these.
+        let panelLog = GitLogViewController(all: false, workbench: status.workbench)
+        _ = panelLog.view
+        #expect(panelLog.hintLabel.isHidden)
+        panelLog.stop()
+        status.showDiff(.unstaged)
+        let diff = try #require(status.diffView)
+        _ = diff.view
+        #expect(diff.hintLabel.stringValue.contains("q back"))
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func theRightClickMenuStagesTheClickedFile() async throws {
+        let repo = try await GitFixture(["a": "1\n", "b": "1\n"])
+        try repo.write("a", "2\n")
+        try repo.write("b", "2\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        select(status) { $0.path == "a" }
+        let row = try #require(status.rows.firstIndex { $0.path == "b" })
+        let menu = status.contextMenu(for: row)
+        // A right click outside the selection selects the clicked row, as in the files.
+        #expect(status.selectedRows.map(\.path) == ["b"])
+        let stage = try #require(menu.items.firstIndex { $0.title == String(localized: "Stage the selection") })
+        #expect(menu.items.contains { $0.title == String(localized: "Discard the selection…") })
+        menu.performActionForItem(at: stage)
+        await settle(status)
+        #expect(try await repo.git("diff", "--cached", "--name-only") == "b\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func feedbackIsMoreThanColor() async throws {
+        let repo = try await GitFixture(["a": "1\n"])
+        try repo.write("a", "2\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        status.show("Bad", isError: true)
+        #expect(status.messageSymbol == "exclamationmark.triangle.fill")
+        status.show("Good", isError: false, done: true)
+        #expect(status.messageSymbol == "checkmark.circle")
+        status.show("Note", isError: false)
+        #expect(status.messageSymbol == "info.circle")
+
+        // A key pressed while a command waits says why nothing happened.
+        var answer: CheckedContinuation<Bool, Never>?
+        status.prompts.confirm = { _, _, _, _ in await withCheckedContinuation { answer = $0 } }
+        select(status) { $0.path == "a" }
+        status.discardSelection()
+        for _ in 0..<500 where answer == nil { try await Task.sleep(for: .milliseconds(10)) }
+        status.run(.stage)
+        #expect(status.message?.text == String(localized: "Git is still running a command here."))
+        answer?.resume(returning: false)
+        await settle(status)
+        #expect(repo.text("a") == "2\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func theHeaderSpinsWhileTheStatusIsRead() async throws {
+        let repo = try await GitFixture(["a": "1\n"])
+        let environment = try IndependentEnvironment()
+        let status = GitStatusViewController(workbench: GitWorkbench(repository: repo.repository, writer: environment.services.gitWriter),
+                                             services: environment.services)
+        _ = status.view
+        #expect(status.header.accessibilityLabel()?.contains(String(localized: "Git is running")) == true)
+        await status.loadTask?.value
+        #expect(status.header.accessibilityLabel()?.contains(String(localized: "Git is running")) == false)
+        status.stop()
+        withExtendedLifetime(environment) {}
+    }
+
+    @Test func transientsOpenAtTheSelectedRow() async throws {
+        let repo = try await GitFixture(["a": "1\n", "b": "1\n"])
+        try repo.write("a", "2\n")
+        try repo.write("b", "2\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        status.table.frame = NSRect(x: 0, y: 0, width: 400, height: 400)
+        select(status) { $0.path == "b" }
+        let row = status.table.selectedRow
+        #expect(GitTransient.anchor(in: status.table) == status.table.rect(ofRow: row))
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func diffsAndTheLogReadAtAGlance() async throws {
+        let added = GitStatusCell.Content.line(GitDiffLine(kind: .added, text: "x"))
+        let removed = GitStatusCell.Content.line(GitDiffLine(kind: .removed, text: "x"))
+        let context = GitStatusCell.Content.line(GitDiffLine(kind: .context, text: "x"))
+        #expect(added.background != nil && removed.background != nil && context.background == nil)
+        let cell = GitStatusCell()
+        cell.show(added)
+        #expect(cell.layer?.backgroundColor != nil)
+        cell.show(context)
+        #expect(cell.layer?.backgroundColor == nil)
+
+        let commit = GitCommit(id: String(repeating: "a", count: 40), parents: [], author: "A", email: "a@b", date: Date(), refs: [], subject: "s")
+        #expect(GitLogViewController.spoken(commit).contains(RelativeDateTimeFormatter.git.localizedString(for: Date(), relativeTo: Date())))
+        #expect(!GitLogViewController.spoken(commit).contains("in 0"))
+
+        let repo = try await GitFixture(["a": "1\n"])
+        let environment = try IndependentEnvironment()
+        let log = GitLogViewController(all: false, workbench: GitWorkbench(repository: repo.repository, writer: environment.services.gitWriter))
+        _ = log.view
+        await log.loadTask?.value
+        #expect(log.table.tableColumns[0].width < 40)
+        log.stop()
+        withExtendedLifetime(environment) {}
+    }
+
+    @Test func longRowsTruncateInANarrowPanelInsteadOfRunningIntoTheNext() {
+        let long = String(repeating: "feat(transactions): keep the usual filters ", count: 4)
+        let cell = GitStatusCell()
+        cell.show(.init(text: NSAttributedString(string: long, attributes: [.font: NSFont.systemFont(ofSize: NSFont.systemFontSize)]),
+                        accessibility: long, indent: 0))
+        let label = try! #require(cell.textField)
+        let one = label.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: 10_000, height: 1_000)).height
+        let narrow = label.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: 180, height: 1_000)).height
+        #expect(narrow == one)
+        // A commit's message above its diff keeps its lines; the next row shown in that cell is one line again.
+        cell.textField?.maximumNumberOfLines = 0
+        cell.show(.init(text: NSAttributedString(string: "a\nb"), accessibility: "", indent: 0))
+        #expect(cell.textField?.maximumNumberOfLines == 1)
+    }
+
+    @Test func theLogFitsANarrowPanel() async throws {
+        let repo = try await GitFixture(["a": "1\n"])
+        let environment = try IndependentEnvironment()
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 220, height: 300), styleMask: [.titled], backing: .buffered, defer: true)
+        let log = GitLogViewController(all: false, workbench: GitWorkbench(repository: repo.repository, writer: environment.services.gitWriter))
+        window.contentViewController = log
+        window.setContentSize(NSSize(width: 220, height: 300))
+        await log.loadTask?.value
+        window.contentView?.layoutSubtreeIfNeeded()
+        // The commit column ends where the panel does, so long subjects end in an ellipsis rather than off the edge.
+        #expect(log.table.frame.width <= 220)
+        window.contentViewController = nil
+        log.stop()
+        withExtendedLifetime(environment) {}
+    }
 }

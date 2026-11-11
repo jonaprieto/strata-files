@@ -31,10 +31,16 @@ and Reload stay on.
 | `z` | Stash: `z` everything with new files, `w` tracked files only, `a` apply, `p` pop, `k` drop |
 | `r` | Rebase: `i` interactively from a commit; during a rebase `r` continue, `s` skip, `a` abort |
 | `g` | Reload |
-| `n` `p`, `j` `k`, arrows | Move |
+| `n` `p`, arrows | Move (`j` and `k` don't move here, since `k` discards; they do in the log and diff) |
 | Return | Show the file in the pane |
 | `?` | All keys |
 | `q`, Escape | Back (from a diff or log to the status, from the status to the files) |
+
+After `s`, `u` or `k` the selection moves on to the file now in its place, so pressing `s` again stages the next one.
+A line under the list names the main keys, and the last command's result shows above it with a checkmark, or a
+warning sign when it failed. Right-clicking a row offers the same commands: stage, unstage, discard, show its
+changes, show it in the pane, commit. Menus that open from a key (`c`, `d`, `l` and the rest) open beside the
+selected row.
 
 A file's changes show as hunks and lines. Selecting a hunk and pressing `s` stages only that hunk; selecting some of
 its lines stages only those (a removed line left out stays, an added line left out isn't added). `u` and `k` work the
@@ -42,11 +48,12 @@ same way. New, deleted and binary files change as a whole.
 
 ## Diffs and history
 
-`d` opens a whole diff over the status: every file's hunks, Tab folds the selected files, Shift-Tab all of them. The
+`d` opens a whole diff over the status: every file's hunks, added and removed lines tinted, Tab folds the selected files, Shift-Tab all of them. The
 log (`l`) shows each commit's lane in the graph, where branches fork and merge, the branches and tags at it, its
 author and date; a merge's dot is hollow, so it reads apart without relying on color. Return shows a commit's
 message and changes; with two commits selected, `d` shows what changed between them. In the log, `x` resets the
 branch to the selected commit (soft, mixed, or hard after a confirmation) and `r` opens the rebase plan from it.
+The log and the diff each name their keys on a line under them.
 
 ## Git History panel
 
