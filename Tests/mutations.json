@@ -3344,8 +3344,8 @@
   },
   {
     "file": "Strata/Browser/BrowserViewController+Actions.swift",
-    "find": "    func stopBackgroundWork() {\n        folderOptions?.detach(self)\n        cancelPendingActions()",
-    "replace": "    func stopBackgroundWork() {\n        folderOptions?.detach(self)",
+    "find": "    func stopBackgroundWork() {\n        folderOptions?.detach(self)\n        stopGitStatus()\n        cancelPendingActions()",
+    "replace": "    func stopBackgroundWork() {\n        folderOptions?.detach(self)\n        stopGitStatus()",
     "rule": "Provider fetch ownership closing a pane leaves selection prefetch running",
     "tests": "ProviderFetchTests/changingSelectionAndLeavingThePaneCancelItsPrefetch"
   },
@@ -9757,5 +9757,12 @@
     "replace": "",
     "rule": "Git writes run two at a time in one repository",
     "tests": "GitWriterTests/aSecondCommandWhileOneRunsIsRefused"
+  },
+  {
+    "file": "Strata/Git/BrowserViewController+Git.swift",
+    "find": "        return [#selector(reloadFolder(_:)), #selector(copyPath(_:)), #selector(copyName(_:)), #selector(copyRelativePath(_:))].contains(action)\n            ? nil : false",
+    "replace": "        return nil",
+    "rule": "Git status leaves file commands on for hidden files",
+    "tests": "GitStatusViewTests/fileCommandsAreOffWhileTheStatusShows"
   }
 ]

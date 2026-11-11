@@ -191,6 +191,7 @@ extension BrowserViewController {
 extension BrowserViewController: NSMenuItemValidation, PaneCommandState {
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         guard let action = item.action else { return true }
+        if let answer = validateGitItem(item) { return answer }
         if action == StrataCommand.getInfo.action { return canGetInfo(item.representedObject) }
         if let shown = validateViewOption(item, action) { return shown }
         let answer = PaneCommandAvailability.answer(for: action, represented: item.representedObject, in: self)

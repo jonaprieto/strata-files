@@ -167,6 +167,9 @@ final class BrowserViewController: NSViewController {
     private(set) var navigationRevision = 0
     /// The latest asynchronous file or server command started by this pane.
     var commandWork: Task<Void, Never>?
+    /// The git status view over the files, and the repository lookup that opens it.
+    var gitStatus: GitStatusViewController?
+    var gitStatusLookup: Task<Void, Never>?
     private(set) lazy var serverCommands = ServerCommands(context: self)
     private(set) lazy var clipboardCommands = ClipboardCommands(context: self)
     private(set) lazy var localCommands = LocalFileCommands(context: self, files: services.files)
@@ -399,6 +402,7 @@ final class BrowserViewController: NSViewController {
         services.tags.invalidate(url)
         let isNewDirectory = url != directory || isShowingResults
         let restorePresentation = url != directory || loadError != nil
+        gitStatusNavigated(to: url)
         if isShowingResults { leaveResults() }
         loading.navigate(to: url, newFolder: isNewDirectory)
         folderOptions?.refresh()

@@ -126,6 +126,7 @@ extension BrowserViewController {
 
     func stopBackgroundWork() {
         folderOptions?.detach(self)
+        stopGitStatus()
         cancelPendingActions()
         filtering.cancel()
         resorting.cancel()

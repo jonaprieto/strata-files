@@ -20,6 +20,19 @@ The proof, below). A change to any of these, or a new one, comes with tests and 
 | Commands in the combined Applications listing | `ApplicationsFolders`, `DirectoryLoader.load`, `ColumnBrowserViewController.reveal` and `continueReveal`; entries retain physical URLs | `ApplicationsFoldersTests/*` (duplicate names, exact root, both source folders changing, every view, expanded folders, deeper columns, copy to the other pane and rename/undo) |
 | Commands in List, Icons and Gallery results | `BrowserViewController.selectedEntries`, `targetDirectory`, `FileCollectionContent`; results have no destination folder and group headers are excluded | `ResultPresentationTests/*` (exact Copy/Cut URLs among same names, view changes, refreshed results, duplicate groups, refused Paste and background Drop, and unchanged fixture trees); mutations: “Visual results” |
 
+## Git (fork)
+
+Git writes run only in a repository the user trusts (`GitWriter`, `GitTrust`), one at a time per repository. Paths
+are always literal (`GitCommands.literal`), names and commits are checked before git runs so none reads as an option,
+and every command here is refused up front when it can't be done safely.
+
+| Action | Code | Tests |
+|---|---|---|
+| Untrusted repositories refuse every write | `GitWriter.run`, `GitTrust.isTrusted` (folder identity and path) | `GitWriterTests/*`; `GitStagingTests/untrustedRepositoriesRefuseBeforeAnythingChanges`; mutations: “Git writes” |
+| Stage and unstage files, hunks and lines (index only) | `GitWorkbench.stage`, `unstage`, `GitPatch.make`, `GitStatusOutline.plan` | `GitStagingTests/*`; `GitPatchTests/*`; `GitStatusOutlineTests/*`; `GitStatusViewTests/sKeyStagesTheSelectedFileAndOnlyThatPaneChanges` |
+| Branches: switch (never over local changes), rename, delete (unmerged only when forced, never the current one) | `GitWorkbench.switchBranch`, `createBranch`, `renameBranch`, `deleteBranch`, `GitBranchParser.isValidName` | `GitBranchTests/*`; `GitStatusViewTests/branchesFromTheStatusView` |
+| Pull (fast-forward only, or rebase), push (never forced but with a lease) | `GitWorkbench.pull`, `push`, `fetch`; transports only for these (`GitWriter.Options.network`) | `GitRemoteTests/*` |
+
 ## Undo and History
 
 | Action | Code | Tests |
@@ -176,6 +189,7 @@ on any function that is in neither this table nor a mutation.
 | `Index/IndexStore :: remove`, `unlink` | An in-memory tree, not files. |
 | `Toolbar/BrowserToolbar :: toolbarDidRemoveItem` | AppKit removed a toolbar control; this clears references to its UI object. No files. Native removal and persistence are tested in `ToolbarCustomizationTests`. |
 | `Dev/GitRepository :: execute` | Runs git with the arguments `runBlocking` hardened (mutated); git's own commands here (`status`, `config`, `ls-files`) change nothing. |
+| `Dev/Workbench/GitWorkbench :: remove`, `write` | `GitScratch`: Strata's own temporary files for git (patches and messages) in its own folder of the temporary directory; removal takes only a regular file, never through a link. |
 | `Dev/ProjectActions :: writeCommandFile` | Writes its own script into a fresh folder in the temporary directory, away from the main thread, for `openCommandFile`; what the script runs is tested (`theTerminalScriptQuotesEverything`). |
 | `Browser/ArchiveOpening :: prepareCopy`; `Containers/ContainerCopies :: prepare`, `stackFolder`, `record`, `setAttribute`; `Containers/CopyWriter :: close`, `makeFolders`, `makePlaceholder`, `setLinkTimes`, `remember`, `restoreTimes`, `setTimes`, `markDownloaded`, `systemQuarantine`; `Remote/RemoteFiles :: list`, `fetch`; `Remote/LazyCopies :: newFolder`; `Model/SecureStorage :: url`, `init`, `prepare`, `useApplicationStorage`; `Model/ArchiveCache :: touch`; `Transfers/Archiver :: unpack` | Make or mark Strata's own folders, placeholders and temporary files inside its copies and caches (Put Back's `makeFolders`, mutated, remakes the folders `Trash.location`, mutated, leads to). Nothing of the user's. |
 | `Containers/CopyWriter :: place`, `bringDown`, `write`, `endFile` | Arrange Strata's copy of a container's files (`endFile` puts a file the stream wrote whole in its place there) (`theContainersFolderFollowsTheEngine`, `composeProjectsGroupTheirContainers`, `aLeftoverFolderNamedLikeAProjectMakesWay`; `aContainersFolderIsWrittenOnlyIntoItsCopy`). The copy is Strata's own; what comes out of it is covered above. |
@@ -242,7 +256,8 @@ belong to.
 | `Views/ContainerDrag :: filePromiseProvider` | `ContainerCopyTests/aDraggedOutItemNeverReplacesWhatsAtTheDrop` |
 | `Containers/CopyWriter :: place`, `bringDown`, `apply`, `makeFolders`, `folderFD`, `begin`, `endFile`, `linkHardlink`, `close`, `write`, `makePlaceholder`, `remember`, `restoreTimes`, `setTimes`, `setLinkTimes`, `markDownloaded`, `systemQuarantine` (a probe file of its own), `removeAt`, `syncProject`, `moveAside`, `writeFolder`, `writeLink`, `writeFile` | `ContainerCopyTests/aContainersFolderIsWrittenOnlyIntoItsCopy`, `aCopyThatIsALinkIsNotWrittenThrough`; `ContainerTests/listingsAreWrittenWithoutEscapingTheFolder`, `linksAlwaysResolveInsideTheCopy`, `composeProjectsGroupTheirContainers`, `aLeftoverFolderNamedLikeAProjectMakesWay`, `aContainerNamedLikeItsProjectMovesInWithItsFiles`, `aListedFolderTakesThePlaceOfALinkWithoutFollowingIt` |
 | `Containers/CopyWriter :: fetchFile` | `ContainerCopyTests/aFetchedFileTakesOnlyItsPlaceholdersPlace`, `aFetchThatIsntAFileOrFindsSomethingElseChangesNothing` |
-| `Dev/GitRepository :: execute` (runs `git`, reads only: `status`, `config`, `ls-files`, hardened against the repository's own config) | `ProjectCleanupTests/*` for what's offered; git's own commands change nothing |
+| `Dev/GitRepository :: execute` (runs `git`: hardened reads, and through `runConfigured` the writes of the Git section above, only in trusted repositories) | `ProjectCleanupTests/*` for what's offered; `GitWriterTests/*` and the Git section's tests for writes |
+| `Dev/Workbench/GitWorkbench :: remove`, `write` (Strata's own scratch files for git) | `GitStagingTests/*` |
 | `Dev/ProjectActions :: writeCommandFile` (its own script file), `removeStaleCommandFiles` | `CacheRemovalTests/staleScriptFilesGoOnlyFromTheirFolder`; `ContainerTests/theTerminalScriptQuotesEverything`, `terminalFileNamesArePlainASCII` |
 | `Dock/DockSearch :: restartDock` (`killall Dock`: the Dock relaunches, no files) | `DockSearchTests/*` for what's changed in its list |
 | `Index/IndexStore :: remove`, `unlink` (an in-memory tree, not files) | `PathQueryTests/*` |

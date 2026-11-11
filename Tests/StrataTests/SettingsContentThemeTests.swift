@@ -19,7 +19,7 @@ extension ColorThemeTests {
         let window = try #require(controller.window)
         let tabs = try #require(window.contentViewController as? NSTabViewController)
         defer { window.contentViewController = nil }
-        #expect(tabs.tabStyle == .toolbar && tabs.tabViewItems.count == 5)
+        #expect(tabs.tabStyle == .toolbar && tabs.tabViewItems.count == 6)
 
         for name in [NSAppearance.Name.aqua, .darkAqua] {
             let appearance = try #require(NSAppearance(named: name))
