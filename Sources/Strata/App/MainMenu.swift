@@ -96,6 +96,7 @@ enum MainMenu {
             StrataCommand.toggleHiddenFiles.menuItem(),
             StrataCommand.toggleFoldersFirst.menuItem(),
             StrataCommand.toggleGitStatus.menuItem(),
+            StrataCommand.toggleGitHistory.menuItem(),
             StrataCommand.toggleTerminalDrawer.menuItem(),
             .separator(),
             StrataCommand.toggleDualPane.menuItem(),

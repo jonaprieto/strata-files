@@ -691,6 +691,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         stopClipboardMonitoring()
         panes.forEach { $0.stopBackgroundWork() }
         split.terminal.stop()
+        split.history.stop()
         onClose?()
     }
 
@@ -784,6 +785,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         }
         split.status.text = status
         split.status.details = browser.volumeSpaceDescription
+        updateGitHistory()
         // Two panes: each shows its own counts under its list; the shared bar would sit across both.
         split.status.isHidden = isDualPane
         for p in panes { p.host.setStatus(isDualPane ? p.browser.statusText : nil, details: p.browser.volumeSpaceDescription) }

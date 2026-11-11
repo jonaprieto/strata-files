@@ -48,6 +48,19 @@ author and date; a merge's dot is hollow, so it reads apart without relying on c
 message and changes; with two commits selected, `d` shows what changed between them. In the log, `x` resets the
 branch to the selected commit (soft, mixed, or hard after a confirmation) and `r` opens the rebase plan from it.
 
+## Git History panel
+
+⌥⌘G (View ▸ Show Git History, or its toolbar button in Customize Toolbar) opens a panel between the files and the
+Inspector. It follows the active pane's repository: its name, branch and changes, then its history with the graph.
+Clicking a commit (or pressing Return on it) shows that commit's files in the pane, at the folder the pane shows, or
+the nearest one that existed then; the panel says which commit is shown, and Working Files brings the pane back to
+the repository's own files at the same place. Moving within a commit's files keeps showing that commit.
+
+A commit's files are a read-only copy Strata makes in its caches with a temporary index of its own: the repository's
+index, working files and branch never change, and its hooks and filters don't run (a git-lfs file shows as its
+pointer). Nothing in it can be renamed, trashed, moved or added to, as with an archive opened as a folder; the status
+bar says "Commit abc1234, read only". Strata keeps the eight most recently shown commits of each repository.
+
 ## Taking things back
 
 Discard, reset, stash, dropping a stash and a finished rebase each register Edit ▸ Undo (⌘Z). What they replaced is
