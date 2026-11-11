@@ -168,8 +168,7 @@ extension GitDiffViewController: NSTableViewDataSource, NSTableViewDelegate {
         case .details:
             let text = NSAttributedString(string: details ?? "", attributes: [.foregroundColor: NSColor.labelColor,
                                                                                .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize - 1, weight: .regular)])
-            cell.show(.init(text: text, accessibility: details ?? "", indent: 0))
-            cell.textField?.maximumNumberOfLines = 0
+            cell.show(.init(text: text, accessibility: details ?? "", indent: 0, lines: 0))
         case .empty:
             cell.show(.init(text: NSAttributedString(string: String(localized: "No differences."), attributes: [.foregroundColor: NSColor.secondaryLabelColor]),
                             accessibility: String(localized: "No differences."), indent: 0))

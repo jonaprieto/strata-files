@@ -13,6 +13,10 @@ final class GitLogViewController: NSViewController {
     var onReset: (GitCommit) -> Void = { _ in }
     /// A click on a commit (the history panel shows its files).
     var onSelect: (GitCommit) -> Void = { _ in }
+    /// The selection moved by a key to `commit`.
+    var onMove: (GitCommit) -> Void = { _ in }
+    /// Two lines a commit, the subject alone on the first, for a narrow panel.
+    var stacked = false
     /// Rebase from the selected commit (it and every newer one).
     var onRebase: (GitCommit) -> Void = { _ in }
     private(set) var commits: [GitCommit] = []
@@ -47,7 +51,7 @@ final class GitLogViewController: NSViewController {
         }
         table.headerView = nil
         table.rowSizeStyle = .custom
-        table.rowHeight = 22
+        table.rowHeight = stacked ? 38 : 22
         table.allowsMultipleSelection = true
         table.style = .plain
         table.intercellSpacing = .zero
@@ -156,11 +160,12 @@ final class GitLogViewController: NSViewController {
         return true
     }
 
-    private func move(_ step: Int) {
+    fileprivate func move(_ step: Int) {
         guard !commits.isEmpty else { return }
         let next = min(max((table.selectedRowIndexes.last ?? -1) + step, 0), commits.count - 1)
         table.selectRowIndexes([next], byExtendingSelection: false)
         table.scrollRowToVisible(next)
+        onMove(commits[next])
     }
 
     final class KeyTable: NSTableView {
@@ -168,6 +173,14 @@ final class GitLogViewController: NSViewController {
         override func keyDown(with event: NSEvent) {
             let modifiers = event.modifierFlags.intersection([.command, .control, .option])
             if modifiers.isEmpty, let characters = event.characters, owner?.handleKey(characters) == true { return }
+            // Plain arrows move as n and p do; with Shift they extend the selection as usual.
+            if modifiers.isEmpty, !event.modifierFlags.contains(.shift), let owner {
+                switch event.characters?.unicodeScalars.first.map({ Int($0.value) }) {
+                case NSDownArrowFunctionKey: return owner.move(1)
+                case NSUpArrowFunctionKey: return owner.move(-1)
+                default: break
+                }
+            }
             super.keyDown(with: event)
         }
     }
@@ -196,18 +209,32 @@ extension GitLogViewController: NSTableViewDataSource, NSTableViewDelegate {
             return view
         }
         let cell = tableView.makeView(withIdentifier: GitStatusCell.identifier, owner: nil) as? GitStatusCell ?? GitStatusCell()
-        let text = NSMutableAttributedString()
-        let mono = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize - 1, weight: .regular)
-        text.append(NSAttributedString(string: commit.shortID + "  ", attributes: [.foregroundColor: NSColor.secondaryLabelColor, .font: mono]))
+        cell.show(.init(text: Self.text(commit, stacked: stacked), accessibility: Self.spoken(commit), indent: 0, lines: stacked ? 2 : 1))
+        return cell
+    }
+
+    /// Its id, branches and tags, subject, author and date; stacked, the subject comes first, alone on its line.
+    static func text(_ commit: GitCommit, stacked: Bool) -> NSAttributedString {
+        let small = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let id = NSAttributedString(string: commit.shortID + "  ", attributes: [.foregroundColor: NSColor.secondaryLabelColor,
+                                                                              .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize - 1, weight: .regular)])
+        let refs = NSMutableAttributedString()
         for ref in commit.refs {
             let color = ref.hasPrefix("tag: ") ? GitColors.modified : ref.contains("/") ? GitColors.renamed : GitColors.added
-            text.append(NSAttributedString(string: "[\(ref)] ", attributes: [.foregroundColor: color, .font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)]))
+            refs.append(NSAttributedString(string: "[\(ref)] ", attributes: [.foregroundColor: color, .font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)]))
         }
-        text.append(NSAttributedString(string: commit.subject, attributes: [.foregroundColor: NSColor.labelColor, .font: NSFont.systemFont(ofSize: NSFont.systemFontSize)]))
+        let subject = NSAttributedString(string: commit.subject, attributes: [.foregroundColor: NSColor.labelColor, .font: NSFont.systemFont(ofSize: NSFont.systemFontSize)])
         let date = RelativeDateTimeFormatter.git.localizedString(for: commit.date, relativeTo: Date())
-        text.append(NSAttributedString(string: "  \(commit.author), \(date)", attributes: [.foregroundColor: NSColor.tertiaryLabelColor, .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]))
-        cell.show(.init(text: text, accessibility: Self.spoken(commit), indent: 0))
-        return cell
+        // Stacked, the line under the subject is short: the date before the author, as it matters more.
+        let byline = NSAttributedString(string: stacked ? "\(date) · \(commit.author)" : "\(commit.author), \(date)",
+                                        attributes: [.foregroundColor: NSColor.tertiaryLabelColor, .font: small])
+        let text = NSMutableAttributedString()
+        if stacked {
+            [subject, NSAttributedString(string: "\n"), refs, id, byline].forEach(text.append)
+        } else {
+            [id, refs, subject, NSAttributedString(string: "  ", attributes: [.font: small]), byline].forEach(text.append)
+        }
+        return text
     }
 }
 
@@ -241,7 +268,8 @@ final class GitGraphCell: NSView {
         return colors[lane % colors.count]
     }
 
-    static func x(_ lane: Int) -> CGFloat { 8 + CGFloat(lane) * laneWidth }
+    /// The first lane sits at the 12-point margin the views' titles use.
+    static func x(_ lane: Int) -> CGFloat { 12 + CGFloat(lane) * laneWidth }
 
     override func draw(_ dirtyRect: NSRect) {
         guard let row else { return }

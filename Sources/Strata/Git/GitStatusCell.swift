@@ -11,6 +11,8 @@ final class GitStatusCell: NSTableCellView {
         var indent: CGFloat
         /// A faint fill across the row, for added and removed lines.
         var background: NSColor? = nil
+        /// Lines shown; each line still ends in an ellipsis rather than wrapping.
+        var lines = 1
     }
 
     private let label = NSTextField(labelWithString: "")
@@ -43,8 +45,8 @@ final class GitStatusCell: NSTableCellView {
         paragraph.lineBreakMode = .byTruncatingTail
         text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
         label.attributedStringValue = text
-        // A reused cell may come from a commit message's rows, which show several lines.
-        label.maximumNumberOfLines = 1
+        // Set every time: a reused cell may come from a row with another count.
+        label.maximumNumberOfLines = content.lines
         leading.constant = 8 + content.indent
         setAccessibilityLabel(content.accessibility)
         label.setAccessibilityLabel(content.accessibility)

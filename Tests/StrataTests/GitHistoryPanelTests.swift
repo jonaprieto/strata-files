@@ -111,6 +111,79 @@ import Testing
         withExtendedLifetime(environment) {}
     }
 
+    /// The log's keys and arrows move in the panel too, and the pane follows the commit chosen.
+    @Test func movingInThePanelShowsThatCommitsFiles() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        let (second, first) = (log.commits[0], log.commits[1])
+
+        #expect(log.handleKey("n"))
+        await panel.pendingMove?.value
+        await owner.browser.directoryReads.task?.value
+        #expect(panel.viewing == first.id)
+        #expect(owner.browser.allRows.map(\.entry.name) == ["old"])
+
+        let up = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
+                                               characters: String(UnicodeScalar(UInt16(NSUpArrowFunctionKey))!),
+                                               charactersIgnoringModifiers: String(UnicodeScalar(UInt16(NSUpArrowFunctionKey))!),
+                                               isARepeat: false, keyCode: 126))
+        log.table.keyDown(with: up)
+        await panel.pendingMove?.value
+        #expect(log.selectedCommits == [second])
+        #expect(panel.viewing == second.id)
+        withExtendedLifetime(environment) {}
+    }
+
+    /// Return shows the commit's changes in the pane, where they have room; `q` brings the files back.
+    @Test func returnShowsTheCommitsDiffInThePane() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        let newest = try #require(log.commits.first)
+
+        #expect(log.handleKey("\r"))
+        let diff = try #require(owner.browser.gitStatus?.diffView)
+        #expect(diff.kind == .commit(newest.id))
+        #expect(panel.viewing == nil)
+        #expect(diff.handleKey("q"))
+        #expect(owner.browser.gitStatus == nil)
+        withExtendedLifetime(environment) {}
+    }
+
+    /// In the narrow panel a commit takes two lines, its subject alone on the first; the log in the status keeps one.
+    @Test func thePanelsCommitsPutTheSubjectOnALineOfItsOwn() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        let cell = try #require(log.tableView(log.table, viewFor: log.table.tableColumns.last, row: 0) as? NSTableCellView)
+        let lines = cell.textField?.stringValue.components(separatedBy: "\n") ?? []
+        #expect(lines.first == "second")
+        #expect(lines.count == 2 && lines[1].contains(log.commits[0].shortID))
+        #expect(cell.textField?.maximumNumberOfLines == 2)
+        #expect(log.table.rowHeight >= 2 * 16)
+
+        let status = GitLogViewController(all: false, workbench: GitWorkbench(repository: repo.repository, writer: environment.services.gitWriter))
+        _ = status.view
+        await status.loadTask?.value
+        let single = try #require(status.tableView(status.table, viewFor: status.table.tableColumns.last, row: 0) as? NSTableCellView)
+        #expect(single.textField?.maximumNumberOfLines == 1)
+        #expect(!(single.textField?.stringValue.contains("\n") ?? true))
+        withExtendedLifetime(environment) {}
+    }
+
     @Test func outsideARepositoryThePanelSaysSo() async throws {
         let plain = try TestTree("x")
         let environment = try IndependentEnvironment()

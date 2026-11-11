@@ -45,6 +45,15 @@ extension BrowserViewController {
         view.window?.makeFirstResponder(status.table)
     }
 
+    /// A diff over the pane's files, asked for from the history panel; closing it brings the files back.
+    func showGitDiff(_ kind: GitDiffKind, title: String, in repository: GitRepository) {
+        let opened = gitStatus == nil
+        showGitStatus(repository)
+        guard let status = gitStatus else { return }
+        if opened { status.closesWithItsLastView = true }
+        status.showDiff(kind, title: title)
+    }
+
     /// Back to the files, selecting `file` when it's in the folder shown or revealing it in its own folder.
     func closeGitStatus(selecting file: URL?) {
         guard let status = gitStatus else { return }

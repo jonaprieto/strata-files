@@ -9,6 +9,10 @@ final class GitHistoryPanelController: NSViewController {
     /// The active pane's folder, and how to show another in it.
     var paneFolder: () -> URL? = { nil }
     var navigate: (URL) -> Void = { _ in }
+    /// Shows a diff in the pane, which has room for it.
+    var showDiff: (GitRepository, GitDiffKind, String) -> Void = { _, _, _ in }
+    /// The commit a key moved to, shown once the keys rest.
+    private(set) var pendingMove: Task<Void, Never>?
 
     private(set) var repository: GitRepository?
     private(set) var log: GitLogViewController?
@@ -120,10 +124,16 @@ final class GitHistoryPanelController: NSViewController {
 
     private func install(log repository: GitRepository) {
         let log = GitLogViewController(all: false, workbench: GitWorkbench(repository: repository, writer: services.gitWriter))
-        log.onSelect = { [weak self] commit in self?.show(commit) }
-        log.onShowDiff = { [weak self, weak log] kind, _ in
-            guard case .commit(let id) = kind, let commit = log?.commits.first(where: { $0.id == id }) else { return }
+        log.stacked = true
+        log.onSelect = { [weak self] commit in
+            self?.pendingMove?.cancel()
             self?.show(commit)
+        }
+        log.onMove = { [weak self] commit in self?.showSoon(commit) }
+        log.onShowDiff = { [weak self] kind, title in
+            guard let self, let repository = self.repository else { return }
+            self.pendingMove?.cancel()
+            self.showDiff(repository, kind, title)
         }
         log.onClose = {}
         addChild(log)
@@ -197,6 +207,16 @@ final class GitHistoryPanelController: NSViewController {
         }
     }
 
+    /// Holding a key passes many commits; only the one it stops at is checked out.
+    private func showSoon(_ commit: GitCommit) {
+        pendingMove?.cancel()
+        pendingMove = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard let self, !Task.isCancelled else { return }
+            await self.show(commit).value
+        }
+    }
+
     @objc private func workingFilesClicked() { showWorkingFiles() }
 
     /// `url`, or the nearest folder above it that exists, never above `top`.
@@ -218,6 +238,7 @@ final class GitHistoryPanelController: NSViewController {
 
     func stop() {
         lookup?.cancel()
+        pendingMove?.cancel()
         generation += 1
         log?.stop()
     }

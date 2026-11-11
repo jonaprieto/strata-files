@@ -432,6 +432,8 @@ final class GitStatusViewController: NSViewController {
 
     /// Views over the status list, newest last: a log, a diff opened from it. `q` closes the top one.
     private(set) var overlays: [NSViewController] = []
+    /// Opened only to show a diff (from the history panel): closing the diff closes the status too.
+    var closesWithItsLastView = false
     var diffView: GitDiffViewController? { overlays.last as? GitDiffViewController }
     var logView: GitLogViewController? { overlays.last as? GitLogViewController }
 
@@ -510,6 +512,7 @@ final class GitStatusViewController: NSViewController {
         top.view.removeFromSuperview()
         top.removeFromParent()
         covered.popLast()?.forEach { $0.isHidden = false }
+        if overlays.isEmpty, closesWithItsLastView { return onClose(nil) }
         let focus: NSView = (overlays.last as? GitLogViewController)?.table ?? (overlays.last as? GitDiffViewController)?.table
             ?? (overlays.last as? GitRebaseEditor)?.table ?? table
         view.window?.makeFirstResponder(focus)

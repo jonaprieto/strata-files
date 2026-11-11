@@ -58,15 +58,19 @@ The log and the diff each name their keys on a line under them.
 ## Git History panel
 
 ⌥⌘G (View ▸ Show Git History, or the clock button in the toolbar) opens a panel between the files and the
-Inspector. It follows the active pane's repository: its name, branch and changes, then its history with the graph.
-Clicking a commit (or pressing Return on it) shows that commit's files in the pane, at the folder the pane shows, or
-the nearest one that existed then; the panel says which commit is shown, and Working Files brings the pane back to
-the repository's own files at the same place. Moving within a commit's files keeps showing that commit.
+Inspector. It follows the active pane's repository: its name, branch and changes, then its history with the graph,
+each commit's subject on a line of its own and its branches, id, date and author under it.
+Clicking a commit shows that commit's files in the pane, at the folder the pane shows, or the nearest one that
+existed then; `n` `p`, `j` `k` and the arrow keys move as in the log, and the pane follows once they rest. The panel
+says which commit is shown, and Working Files brings the pane back to the repository's own files at the same place.
+Moving within a commit's files keeps showing that commit. Return (or a double-click) shows the commit's changes in
+the pane, where they have room, and `d` with two commits selected what changed between them; `q` brings the files
+back.
 
 A commit's files are a read-only copy Strata makes in its caches with a temporary index of its own: the repository's
 index, working files and branch never change, and its hooks and filters don't run (a git-lfs file shows as its
 pointer). Nothing in it can be renamed, trashed, moved or added to, as with an archive opened as a folder; the status
-bar says "Commit abc1234, read only". Strata keeps the eight most recently shown commits of each repository.
+bar says "Commit abc1234, read only". Its files carry the commit's date, the one the log shows. Strata keeps the eight most recently shown commits of each repository.
 
 ## Taking things back
 
