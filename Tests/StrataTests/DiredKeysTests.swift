@@ -26,7 +26,7 @@ import Testing
     @Test func eachLetterNamesItsMenuCommandAndOtherLettersNothing() {
         let commands: [(String, StrataCommand)] = [
             ("f", .openSelection), ("^", .goToEnclosingFolder), ("g", .reloadFolder), ("R", .renameSelection),
-            ("+", .newFolder), ("C", .copyToOtherPane), ("D", .moveToTrash),
+            ("+", .newFolder), ("C", .copyToOtherPane), ("D", .moveToTrash), ("w", .copyName), ("W", .copyRelativePath),
         ]
         for (letter, command) in commands {
             guard case .run(let found) = DiredKey(letter) else { Issue.record("\(letter) runs nothing"); continue }

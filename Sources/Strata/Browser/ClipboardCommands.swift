@@ -1,4 +1,5 @@
 import AppKit
+import StrataDev
 
 /// A pane's Copy, Cut, Paste and Copy Path, through its window's clipboard and transfers.
 final class ClipboardCommands {
@@ -51,7 +52,60 @@ final class ClipboardCommands {
         guard let context else { return }
         let paths = urls.compactMap(context.services.copies.clipboardPath)
         guard !paths.isEmpty else { return Sounds.beep() }
-        context.services.clipboard.pasteboard.clearContents()
-        context.services.clipboard.pasteboard.setString(paths.joined(separator: "\n"), forType: .string)
+        Self.write(paths, to: context.services.clipboard.pasteboard)
+    }
+
+    func copyNames(_ urls: [URL]) {
+        guard let context else { return }
+        let names = urls.compactMap(context.services.copies.clipboardPath).map(Self.name(ofPath:))
+        guard !names.isEmpty else { return Sounds.beep() }
+        Self.write(names, to: context.services.clipboard.pasteboard)
+    }
+
+    /// Paths inside each item's repository, read off the main thread (finding a repository looks at the disk). A copy
+    /// made meanwhile wins: the pasteboard is written only if nothing else wrote it first. Server and container items
+    /// keep the path Copy Path gives them.
+    func copyRelativePaths(_ urls: [URL], folder: URL) {
+        guard let context else { return }
+        let copies = context.services.copies
+        let pasteboard = context.services.clipboard.pasteboard
+        let start = pasteboard.changeCount
+        let elsewhere = urls.filter(copies.isCopy)
+        let local = urls.filter { !copies.isCopy($0) }
+        let elsewherePaths = elsewhere.compactMap(copies.clipboardPath)
+        context.commandWork = Task {
+            let relative = await Self.relativePaths(local, folder: folder)
+            guard pasteboard.changeCount == start else { return }
+            let all = relative + elsewherePaths
+            guard !all.isEmpty else { return Sounds.beep() }
+            Self.write(all, to: pasteboard)
+        }
+    }
+
+    @concurrent nonisolated private static func relativePaths(_ urls: [URL], folder: URL) async -> [String] {
+        let folderPath = folder.lexicallyStandardized.path
+        return urls.map { url in
+            relativePath(url.lexicallyStandardized.path, repositoryRoot: GitRepository.locate(from: url)?.rootPath, folder: folderPath)
+        }
+    }
+
+    /// The last part of what Copy Path copies: a file's name, a container's name, the last folder of a server path.
+    nonisolated static func name(ofPath path: String) -> String {
+        let trimmed = path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+        return trimmed.split(separator: "/", omittingEmptySubsequences: false).last.map(String.init) ?? trimmed
+    }
+
+    /// `path` inside its repository, or inside the pane's folder outside one; "." for the base itself, and the
+    /// absolute path when it is under neither.
+    nonisolated static func relativePath(_ path: String, repositoryRoot: String?, folder: String) -> String {
+        for base in [repositoryRoot, folder].compactMap({ $0 }) {
+            if let relative = GitStatusSnapshot.relativePath(path, root: base) { return relative.isEmpty ? "." : relative }
+        }
+        return path
+    }
+
+    private static func write(_ lines: [String], to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+        pasteboard.setString(lines.joined(separator: "\n"), forType: .string)
     }
 }

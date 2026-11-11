@@ -78,6 +78,8 @@ enum MainMenu {
             item("Select All", #selector(NSText.selectAll(_:)), "a"),
             .separator(),
             StrataCommand.copyPath.menuItem(),
+            StrataCommand.copyRelativePath.menuItem(),
+            StrataCommand.copyName.menuItem(),
         ])
     }
 
