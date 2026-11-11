@@ -96,6 +96,7 @@ package final class Prefs: PreviewTextSettings {
         static let hiddenListColumns = "hiddenListColumns"
         static let toolbarItems = "toolbarItems"
         static let toolbarDisplayMode = "toolbarDisplayMode"
+        static let terminalAtRight = "terminalAtRight"
         static let knownListColumns = "knownListColumns"
         static let dockSearch = "dockSearch"
         static let collapsedSidebarSections = "collapsedSidebarSections"
@@ -371,6 +372,12 @@ package final class Prefs: PreviewTextSettings {
     /// Those of `bundleIDs` installed, asked the same way.
     @concurrent package nonisolated static func installed(_ bundleIDs: [String]) async -> Set<String> {
         Set(bundleIDs.filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil })
+    }
+
+    /// The terminal drawer sits at the panes' right rather than under them.
+    package var terminalAtRight: Bool {
+        get { defaults.bool(forKey: Key.terminalAtRight) }
+        set { defaults.set(newValue, forKey: Key.terminalAtRight) }
     }
 
     /// Native toolbar layouts use this environment rather than AppKit's process-wide defaults.

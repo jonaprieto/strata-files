@@ -52,7 +52,14 @@ enum TerminalText {
 /// again, a shell idle at its prompt goes to the active pane's folder. Files dropped on it are typed as quoted paths;
 /// "Go to Pane Folder" types a `cd` there. Both wait for Return.
 final class TerminalDrawerController: NSViewController {
+    enum Edge { case bottom, right }
     static let defaultHeight: CGFloat = 220
+    static let defaultWidth: CGFloat = 420
+    private let preferences: Prefs
+    /// Under the panes or at their right; the choice is kept for new windows.
+    private(set) var edge: Edge
+    /// The drawer moved to the other edge: its window places it there.
+    var onEdgeChange: () -> Void = {}
 
     /// Starts the shell; tests count calls instead of starting one.
     var startShell: (DroppingTerminalView, URL?) -> Void = { view, folder in
@@ -69,15 +76,28 @@ final class TerminalDrawerController: NSViewController {
     lazy var type: (String) -> Void = { [weak self] text in self?.terminal.send(txt: text) }
     private(set) var isShown = false
     private(set) var hasStarted = false
-    private(set) var heightConstraint: NSLayoutConstraint!
-    private var shownHeight = TerminalDrawerController.defaultHeight
+    /// The drawer's height under the panes, its width at their right; zero while hidden.
+    private(set) var sizeConstraint: NSLayoutConstraint!
+    private var shownSize: [Edge: CGFloat] = [.bottom: TerminalDrawerController.defaultHeight, .right: TerminalDrawerController.defaultWidth]
     let terminal = DroppingTerminalView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
-    private let handle = ResizeHandle()
+    let handle = ResizeHandle()
     private let titleLabel = NSTextField(labelWithString: String(localized: "Terminal"))
+    private let edgeButton = NSButton()
+    private var edgeLayout: [NSLayoutConstraint] = []
+    private var header: NSStackView!
+
+    init(preferences: Prefs) {
+        self.preferences = preferences
+        edge = preferences.terminalAtRight ? .right : .bottom
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
     override func loadView() {
         let root = NSView()
         let header = NSStackView()
+        self.header = header
         header.orientation = .horizontal
         header.edgeInsets = NSEdgeInsets(top: 2, left: 10, bottom: 2, right: 6)
         titleLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
@@ -91,18 +111,20 @@ final class TerminalDrawerController: NSViewController {
                              target: self, action: #selector(hideClicked))
         close.isBordered = false
         close.toolTip = String(localized: "Hide Terminal")
+        edgeButton.isBordered = false
+        edgeButton.target = self
+        edgeButton.action = #selector(moveToOtherEdge)
         header.addArrangedSubview(titleLabel)
         header.addArrangedSubview(NSView())
         header.addArrangedSubview(goHere)
+        header.addArrangedSubview(edgeButton)
         header.addArrangedSubview(close)
         terminal.setAccessibilityLabel(String(localized: "Terminal"))
         handle.onDrag = { [weak self] delta in self?.resize(by: delta) }
-        handle.setAccessibilityLabel(String(localized: "Terminal height"))
         for subview in [handle, header, terminal] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
-        heightConstraint = root.heightAnchor.constraint(equalToConstant: 0)
         // Hidden, the drawer is zero high and must never size the window: what's inside gives way and is clipped,
         // so the window's own minimum size and the file canvas stay as they are without it.
         root.clipsToBounds = true
@@ -113,21 +135,62 @@ final class TerminalDrawerController: NSViewController {
         ]
         yielding.forEach { $0.priority = .defaultLow }
         NSLayoutConstraint.activate(yielding + [
-            heightConstraint,
-            handle.topAnchor.constraint(equalTo: root.topAnchor),
-            handle.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            handle.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            handle.heightAnchor.constraint(equalToConstant: 5),
-            header.topAnchor.constraint(equalTo: handle.bottomAnchor),
-            header.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             header.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor),
             terminal.topAnchor.constraint(equalTo: header.bottomAnchor),
-            terminal.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             terminal.trailingAnchor.constraint(equalTo: root.trailingAnchor),
         ])
         root.isHidden = true
         ThemeStyle.bind(root, to: .content)
         view = root
+        layOutForEdge()
+    }
+
+    /// The drag handle runs along the edge facing the panes: the top under them, the left side at their right.
+    private func layOutForEdge() {
+        let root = view
+        NSLayoutConstraint.deactivate(edgeLayout + [sizeConstraint].compactMap { $0 })
+        let size = isShown ? shownSize[edge]! : 0
+        switch edge {
+        case .bottom:
+            sizeConstraint = root.heightAnchor.constraint(equalToConstant: size)
+            edgeLayout = [
+                handle.topAnchor.constraint(equalTo: root.topAnchor),
+                handle.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                handle.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                handle.heightAnchor.constraint(equalToConstant: 5),
+                header.topAnchor.constraint(equalTo: handle.bottomAnchor),
+                header.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                terminal.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            ]
+        case .right:
+            sizeConstraint = root.widthAnchor.constraint(equalToConstant: size)
+            edgeLayout = [
+                handle.topAnchor.constraint(equalTo: root.topAnchor),
+                handle.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+                handle.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                handle.widthAnchor.constraint(equalToConstant: 5),
+                header.topAnchor.constraint(equalTo: root.topAnchor),
+                header.leadingAnchor.constraint(equalTo: handle.trailingAnchor),
+                terminal.leadingAnchor.constraint(equalTo: handle.trailingAnchor),
+            ]
+        }
+        NSLayoutConstraint.activate(edgeLayout + [sizeConstraint])
+        handle.vertical = edge == .bottom
+        handle.setAccessibilityLabel(edge == .bottom ? String(localized: "Terminal height") : String(localized: "Terminal width"))
+        let (symbol, title) = edge == .bottom
+            ? ("rectangle.righthalf.inset.filled", String(localized: "Move Terminal to the Right"))
+            : ("rectangle.bottomhalf.inset.filled", String(localized: "Move Terminal to the Bottom"))
+        edgeButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        edgeButton.toolTip = title
+    }
+
+    /// Under the panes or at their right, whichever it isn't; new windows open it there too.
+    @objc func moveToOtherEdge() {
+        _ = view
+        edge = edge == .bottom ? .right : .bottom
+        preferences.terminalAtRight = edge == .right
+        layOutForEdge()
+        onEdgeChange()
     }
 
     func toggle() { isShown ? hide() : show() }
@@ -136,7 +199,7 @@ final class TerminalDrawerController: NSViewController {
         _ = view
         isShown = true
         view.isHidden = false
-        heightConstraint.constant = shownHeight
+        sizeConstraint.constant = shownSize[edge]!
         let folder = paneFolder()
         if !hasStarted {
             hasStarted = true
@@ -159,7 +222,7 @@ final class TerminalDrawerController: NSViewController {
     func hide() {
         guard isShown else { return }
         isShown = false
-        heightConstraint.constant = 0
+        sizeConstraint.constant = 0
         view.isHidden = true
     }
 
@@ -176,17 +239,31 @@ final class TerminalDrawerController: NSViewController {
         view.window?.makeFirstResponder(terminal)
     }
 
+    /// `delta` toward the panes grows the drawer.
     private func resize(by delta: CGFloat) {
-        let limit = max((view.superview?.bounds.height ?? 600) * 0.75, 120)
-        shownHeight = min(max(heightConstraint.constant - delta, 80), limit)
-        heightConstraint.constant = shownHeight
+        let room = edge == .bottom ? view.superview?.bounds.height : view.superview?.bounds.width
+        let limit = max((room ?? 600) * 0.75, 120)
+        let size = min(max(sizeConstraint.constant + delta, edge == .bottom ? 80 : 160), limit)
+        shownSize[edge] = size
+        sizeConstraint.constant = size
     }
 
-    /// The drawer's top edge: dragging it changes the drawer's height.
-    private final class ResizeHandle: NSView {
+    /// The drawer's edge facing the panes: dragging it changes the drawer's height, or its width at their right.
+    final class ResizeHandle: NSView {
         var onDrag: (CGFloat) -> Void = { _ in }
-        override func resetCursorRects() { addCursorRect(bounds, cursor: .resizeUpDown) }
-        override func mouseDragged(with event: NSEvent) { onDrag(-event.deltaY) }
+        var vertical = true { didSet { window?.invalidateCursorRects(for: self) } }
+        private var last: NSPoint?
+        override func resetCursorRects() { addCursorRect(bounds, cursor: vertical ? .resizeUpDown : .resizeLeftRight) }
+        override func mouseDown(with event: NSEvent) { last = event.locationInWindow }
+        override func mouseUp(with event: NSEvent) { last = nil }
+        /// Measured in the window, where up is positive: up, toward the panes above, or left, toward the panes beside,
+        /// grows the drawer.
+        override func mouseDragged(with event: NSEvent) {
+            let point = event.locationInWindow
+            defer { last = point }
+            guard let last else { return }
+            onDrag(vertical ? point.y - last.y : last.x - point.x)
+        }
     }
 }
 
