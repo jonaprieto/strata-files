@@ -30,15 +30,17 @@ extension BrowserViewController {
         let status = GitStatusViewController(workbench: GitWorkbench(repository: repository, writer: services.gitWriter), services: services)
         status.onClose = { [weak self] file in self?.closeGitStatus(selecting: file) }
         addChild(status)
+        // The files are hidden, not just covered: nothing shows through the status, and VoiceOver doesn't read them.
+        gitStatusHidden = view.subviews.filter { !$0.isHidden }
+        gitStatusHidden.forEach { $0.isHidden = true }
         status.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(status.view)
         NSLayoutConstraint.activate([
-            status.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            status.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            status.view.topAnchor.constraint(equalTo: view.topAnchor),
-            status.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            status.view.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            status.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            status.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            status.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
-        ThemeStyle.bind(status.view, to: .content)
         gitStatus = status
         view.window?.makeFirstResponder(status.table)
     }
@@ -49,6 +51,8 @@ extension BrowserViewController {
         status.stop()
         status.view.removeFromSuperview()
         status.removeFromParent()
+        gitStatusHidden.forEach { $0.isHidden = false }
+        gitStatusHidden = []
         gitStatus = nil
         view.window?.makeFirstResponder(activeView?.focusView ?? outlineView)
         guard let file else { return }

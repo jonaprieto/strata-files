@@ -40,7 +40,6 @@ final class GitDiffViewController: NSViewController {
         table.allowsMultipleSelection = true
         table.style = .plain
         table.intercellSpacing = .zero
-        table.backgroundColor = .clear
         table.dataSource = self
         table.delegate = self
         table.owner = self
@@ -49,7 +48,6 @@ final class GitDiffViewController: NSViewController {
         scroll.documentView = table
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
-        scroll.drawsBackground = false
         ThemeStyle.bind(scroll, to: .content)
         headingLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         headingLabel.stringValue = heading
@@ -59,7 +57,7 @@ final class GitDiffViewController: NSViewController {
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            headingLabel.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor, constant: 8),
+            headingLabel.topAnchor.constraint(equalTo: root.topAnchor, constant: 8),
             headingLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
             headingLabel.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor, constant: -12),
             scroll.topAnchor.constraint(equalTo: headingLabel.bottomAnchor, constant: 8),
