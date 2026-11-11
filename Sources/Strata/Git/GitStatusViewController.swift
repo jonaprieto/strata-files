@@ -50,7 +50,6 @@ final class GitStatusViewController: NSViewController {
         table.usesAutomaticRowHeights = false
         table.style = .plain
         table.intercellSpacing = NSSize(width: 0, height: 0)
-        table.backgroundColor = .clear
         table.dataSource = self
         table.delegate = self
         table.owner = self
@@ -60,7 +59,6 @@ final class GitStatusViewController: NSViewController {
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
-        scrollView.drawsBackground = false
         ThemeStyle.bind(scrollView, to: .content)
         header.trustButton.target = self
         header.trustButton.action = #selector(trustClicked)
@@ -75,7 +73,7 @@ final class GitStatusViewController: NSViewController {
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor),
+            header.topAnchor.constraint(equalTo: root.topAnchor),
             header.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             header.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: header.bottomAnchor),
@@ -84,7 +82,7 @@ final class GitStatusViewController: NSViewController {
             messageLabel.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 4),
             messageLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
             messageLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
-            messageLabel.bottomAnchor.constraint(equalTo: root.safeAreaLayoutGuide.bottomAnchor, constant: -6),
+            messageLabel.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
         ])
         view = root
         services.preferences.notifications.addObserver(self, selector: #selector(writerChanged), name: .gitWriteStateChanged, object: services.gitWriter)
@@ -444,7 +442,13 @@ final class GitStatusViewController: NSViewController {
         push(log, focus: log.table, announcing: log.heading)
     }
 
+    /// What each overlay hid beneath it, shown again when it closes.
+    private var covered: [[NSView]] = []
+
     private func push(_ controller: NSViewController, focus: NSView, announcing heading: String) {
+        let beneath = overlays.last.map { [$0.view] } ?? [header, scrollView, messageLabel]
+        covered.append(beneath.filter { !$0.isHidden })
+        covered.last?.forEach { $0.isHidden = true }
         addChild(controller)
         controller.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(controller.view)
@@ -454,7 +458,6 @@ final class GitStatusViewController: NSViewController {
             controller.view.topAnchor.constraint(equalTo: view.topAnchor),
             controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        ThemeStyle.bind(controller.view, to: .content)
         overlays.append(controller)
         view.window?.makeFirstResponder(focus)
         announce(heading)
@@ -466,6 +469,8 @@ final class GitStatusViewController: NSViewController {
         (top as? GitLogViewController)?.stop()
         top.view.removeFromSuperview()
         top.removeFromParent()
+        covered.popLast()?.forEach { $0.isHidden = false }
+        if overlays.isEmpty { messageLabel.isHidden = message == nil }
         let focus: NSView = (overlays.last as? GitLogViewController)?.table ?? (overlays.last as? GitDiffViewController)?.table
             ?? (overlays.last as? GitRebaseEditor)?.table ?? table
         view.window?.makeFirstResponder(focus)
@@ -816,7 +821,8 @@ final class GitStatusViewController: NSViewController {
         message = (text, isError)
         messageLabel.stringValue = text
         messageLabel.textColor = isError ? GitColors.deleted : .secondaryLabelColor
-        messageLabel.isHidden = false
+        // Under a diff or log it waits; it's announced now and shown when they close.
+        messageLabel.isHidden = !overlays.isEmpty
         announce(text)
     }
 

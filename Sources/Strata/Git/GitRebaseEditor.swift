@@ -31,7 +31,6 @@ final class GitRebaseEditor: NSViewController {
         table.rowSizeStyle = .custom
         table.rowHeight = 24
         table.style = .plain
-        table.backgroundColor = .clear
         table.dataSource = self
         table.delegate = self
         table.owner = self
@@ -40,7 +39,6 @@ final class GitRebaseEditor: NSViewController {
         let scroll = NSScrollView()
         scroll.documentView = table
         scroll.hasVerticalScroller = true
-        scroll.drawsBackground = false
         ThemeStyle.bind(scroll, to: .content)
         let heading = NSTextField(labelWithString: String(localized: "Rebase, oldest commit first"))
         heading.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
@@ -52,7 +50,7 @@ final class GitRebaseEditor: NSViewController {
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            heading.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor, constant: 8),
+            heading.topAnchor.constraint(equalTo: root.topAnchor, constant: 8),
             heading.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
             scroll.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 8),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),

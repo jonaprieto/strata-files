@@ -44,7 +44,6 @@ final class GitLogViewController: NSViewController {
         table.allowsMultipleSelection = true
         table.style = .plain
         table.intercellSpacing = .zero
-        table.backgroundColor = .clear
         table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         table.dataSource = self
         table.delegate = self
@@ -56,7 +55,6 @@ final class GitLogViewController: NSViewController {
         scroll.documentView = table
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
-        scroll.drawsBackground = false
         ThemeStyle.bind(scroll, to: .content)
         headingLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         headingLabel.stringValue = heading
@@ -65,7 +63,7 @@ final class GitLogViewController: NSViewController {
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            headingLabel.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor, constant: 8),
+            headingLabel.topAnchor.constraint(equalTo: root.topAnchor, constant: 8),
             headingLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
             scroll.topAnchor.constraint(equalTo: headingLabel.bottomAnchor, constant: 8),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),

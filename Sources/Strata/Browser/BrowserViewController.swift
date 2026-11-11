@@ -170,6 +170,8 @@ final class BrowserViewController: NSViewController {
     /// The git status view over the files, and the repository lookup that opens it.
     var gitStatus: GitStatusViewController?
     var gitStatusLookup: Task<Void, Never>?
+    /// The pane's own views the status hid, shown again when it closes.
+    var gitStatusHidden: [NSView] = []
     private(set) lazy var serverCommands = ServerCommands(context: self)
     private(set) lazy var clipboardCommands = ClipboardCommands(context: self)
     private(set) lazy var localCommands = LocalFileCommands(context: self, files: services.files)
