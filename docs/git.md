@@ -63,7 +63,8 @@ each commit's subject on a line of its own and its branches, id, date and author
 Clicking a commit shows that commit's files in the pane, at the folder the pane shows, or the nearest one that
 existed then; `n` `p`, `j` `k` and the arrow keys move as in the log, and the pane follows once they rest. The panel
 says which commit is shown, and Working Files brings the pane back to the repository's own files at the same place.
-Moving within a commit's files keeps showing that commit. Return (or a double-click) shows the commit's changes in
+Moving within a commit's files keeps showing that commit. With two panes the panel takes the other pane's place, as
+wide as it was, and hiding the panel opens that pane again at its folder. Return (or a double-click) shows the commit's changes in
 the pane, where they have room, and `d` with two commits selected what changed between them; `q` brings the files
 back.
 

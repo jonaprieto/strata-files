@@ -80,10 +80,18 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
     /// smallest size would no longer fit.
     var isHistoryShown: Bool { splitViewItems.contains(historyItem) }
 
-    func setHistoryShown(_ shown: Bool) {
+    /// `width`, in a pane's place: as wide as the pane was, past the panel's usual widest.
+    func setHistoryShown(_ shown: Bool, width: CGFloat? = nil) {
         guard shown != isHistoryShown else { return }
         if shown {
-            insertSplitViewItem(historyItem, at: splitViewItems.firstIndex(of: inspectorItem) ?? splitViewItems.count)
+            historyItem.maximumThickness = width == nil ? 520 : NSSplitViewItem.unspecifiedDimension
+            let index = splitViewItems.firstIndex(of: inspectorItem) ?? splitViewItems.count
+            // The panel's frame isn't laid out yet once inserted; the files' right edge before it is where it ends.
+            let end = splitView.arrangedSubviews[safe: index - 1]?.frame.maxX ?? 0
+            insertSplitViewItem(historyItem, at: index)
+            guard let width, index > 0 else { return }
+            splitView.layoutSubtreeIfNeeded()
+            splitView.setPosition(end - width - splitView.dividerThickness, ofDividerAt: index - 1)
         } else {
             removeSplitViewItem(historyItem)
         }

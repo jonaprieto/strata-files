@@ -39,6 +39,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
     var otherBrowser: BrowserViewController? { panes.first { $0 !== pane }?.browser }
     var splitController: NSSplitViewController { split }
     var isDualPane: Bool { panes.count > 1 }
+    /// The folder of the pane the Git History panel took the place of, opened again when the panel hides.
+    var paneUnderHistory: URL?
 
     var destination: Destination {
         get { pane.destination }

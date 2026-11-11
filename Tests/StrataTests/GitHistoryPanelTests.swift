@@ -184,6 +184,38 @@ import Testing
         withExtendedLifetime(environment) {}
     }
 
+    /// With two panes the panel takes the other pane's place, as wide as it was; hiding the panel brings that pane back
+    /// at its folder. Nothing can be sent to a pane that isn't shown.
+    @Test func inTwoPanesThePanelTakesTheOtherPanesPlace() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = BrowserWindowController(location: repo.url("sub"), secondPane: repo.root, services: environment.services)
+        owner.window?.setFrameAutosaveName("")
+        owner.split.splitView.autosaveName = nil
+        defer { close(owner) }
+        owner.window?.setContentSize(NSSize(width: 1200, height: 600))
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        owner.split.panes.splitView.setPosition(owner.split.panes.splitView.bounds.width / 2, ofDividerAt: 0)
+        owner.split.panes.splitView.layoutSubtreeIfNeeded()
+        for pane in owner.panes { await pane.browser.directoryReads.task?.value }
+        let active = owner.pane
+        let other = try #require(owner.panes.first { $0 !== active })
+        let width = other.host.view.frame.width
+
+        _ = try await showPanel(owner)
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        #expect(!owner.isDualPane && owner.pane === active)
+        #expect(owner.otherBrowser == nil)
+        #expect(abs(owner.split.history.view.frame.width - width) <= 2)
+
+        owner.toggleGitHistory(nil)
+        #expect(!owner.split.isHistoryShown && owner.isDualPane && owner.pane === active)
+        let back = try #require(owner.panes.first { $0 !== active })
+        #expect(back.location.lexicallyStandardized == other.location.lexicallyStandardized)
+        withExtendedLifetime(environment) {}
+    }
+
     @Test func outsideARepositoryThePanelSaysSo() async throws {
         let plain = try TestTree("x")
         let environment = try IndependentEnvironment()

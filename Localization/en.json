@@ -3115,7 +3115,7 @@
     "Incoming": "Conflict sheet: over the item being copied or moved · ConflictSheetController.swift:68",
     "Index": "Settings ▸ Search & Index: section about the file index · SettingsWindowController.swift:213",
     "Index updates unavailable": "SettingsWindowController.swift:284",
-    "Indexing %lld items…": "BrowserWindowController.swift:730",
+    "Indexing %lld items…": "BrowserWindowController.swift:732",
     "Indexing…": "PaneSearch.swift:153, PaneSearch.swift:382",
     "Indexing… %lld items so far": "SettingsWindowController.swift:261",
     "infoplist.NSDesktopFolderUsageDescription": "macOS permission prompt (Info.plist), shown the first time Strata opens that place · Info.plist NSDesktopFolderUsageDescription",
