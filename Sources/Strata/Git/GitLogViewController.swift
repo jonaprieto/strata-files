@@ -70,6 +70,8 @@ final class GitLogViewController: NSViewController {
         ThemeStyle.bind(scroll, to: .content)
         headingLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         headingLabel.stringValue = heading
+        headingLabel.lineBreakMode = .byTruncatingTail
+        headingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         hintLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         hintLabel.textColor = .secondaryLabelColor
         hintLabel.lineBreakMode = .byTruncatingTail
@@ -82,6 +84,7 @@ final class GitLogViewController: NSViewController {
         NSLayoutConstraint.activate([
             headingLabel.topAnchor.constraint(equalTo: root.topAnchor, constant: 8),
             headingLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+            headingLabel.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor, constant: -12),
             scroll.topAnchor.constraint(equalTo: headingLabel.bottomAnchor, constant: 8),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
