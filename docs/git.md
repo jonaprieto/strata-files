@@ -57,7 +57,7 @@ The log and the diff each name their keys on a line under them.
 
 ## Git History panel
 
-⌥⌘G (View ▸ Show Git History, or its toolbar button in Customize Toolbar) opens a panel between the files and the
+⌥⌘G (View ▸ Show Git History, or the clock button in the toolbar) opens a panel between the files and the
 Inspector. It follows the active pane's repository: its name, branch and changes, then its history with the graph.
 Clicking a commit (or pressing Return on it) shows that commit's files in the pane, at the folder the pane shows, or
 the nearest one that existed then; the panel says which commit is shown, and Working Files brings the pane back to
@@ -120,8 +120,8 @@ In a repository the status bar under the files says where the branch is and what
 already read: "22 items · main ↑1 · 2 staged · 3 modified · 1 untracked · 10 GB free", or "main · No changes". It
 follows the repository as it changes.
 
-Both toolbar buttons show when they're on: the branch turns the accent color while the status shows, the terminal
-fills while the drawer is open, and each tooltip says what a click does. They're in the default toolbar and can be
+The three toolbar buttons show when they're on: the branch turns the accent color while the status shows, the clock
+while the history panel shows, the terminal fills while the drawer is open, and each tooltip says what a click does. They're in the default toolbar and can be
 removed or moved with Customize Toolbar.
 
 The header names the repository and branch, how far it is from its upstream, any merge or rebase in progress and the
