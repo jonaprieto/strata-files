@@ -23,6 +23,8 @@ package enum GitOutcome: Equatable, Sendable {
     case failed(String)
     case emptyMessage
     case nothingStaged
+    /// A rebase stopped to let the user edit or resolve a conflict.
+    case stopped
 }
 
 /// The arguments for each command, kept apart so tests can read them. Paths are always literal: a file named `*` or
@@ -86,6 +88,8 @@ package nonisolated enum GitDiffKind: Equatable, Sendable {
 package final class GitWorkbench {
     package let repository: GitRepository
     package let writer: GitWriter
+    /// The todo and message files of a rebase that stopped, removed when it finishes or is aborted.
+    var rebaseScratch: [URL] = []
 
     package init(repository: GitRepository, writer: GitWriter) {
         self.repository = repository
@@ -252,18 +256,7 @@ package final class GitWorkbench {
 
 /// Strata's own temporary files for git, in a folder only Strata writes to.
 package nonisolated enum GitScratch {
-    @concurrent
-    package static func write(_ text: String) async -> URL? {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "Strata-git", directoryHint: .isDirectory)
-        do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-            let file = folder.appending(path: UUID().uuidString)
-            try Data(text.utf8).write(to: file, options: [.withoutOverwriting])
-            return file
-        } catch {
-            return nil
-        }
-    }
+    package static func write(_ text: String) async -> URL? { await write(Data(text.utf8)) }
 
     @concurrent
     package static func remove(_ file: URL) async {

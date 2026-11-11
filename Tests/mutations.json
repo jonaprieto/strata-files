@@ -9764,5 +9764,48 @@
     "replace": "        return nil",
     "rule": "Git status leaves file commands on for hidden files",
     "tests": "GitStatusViewTests/fileCommandsAreOffWhileTheStatusShows"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitUndo.swift",
+    "edits": [
+      {
+        "find": "        guard lstat(folder.path, &info) == 0, (info.st_mode & S_IFMT) == S_IFDIR,",
+        "replace": "        guard lstat(folder.path, &info) == 0 || true,"
+      },
+      {
+        "find": "              folder.resolvingSymlinksInPath().path.hasPrefix(root.resolvingSymlinksInPath().path) else { return false }",
+        "replace": "              true else { return false }"
+      }
+    ],
+    "rule": "Git discard Undo writes through a folder replaced by a link",
+    "tests": "GitDiscardTests/undoNeverWritesThroughAFolderReplacedByALink"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitUndo.swift",
+    "find": "            guard currentBlob == file.after else {",
+    "replace": "            guard currentBlob == file.after || true else {",
+    "rule": "Git discard Undo replaces a file changed since",
+    "tests": "GitDiscardTests/undoNeverReplacesAFileChangedSinceTheDiscard"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitUndo.swift",
+    "find": "        if let other = paths.first(where: { !unstaged.contains($0) }) {",
+    "replace": "        if let other = paths.first(where: { _ in false }) {",
+    "rule": "Git discard takes untracked or unchanged paths",
+    "tests": "GitDiscardTests/discardIsRefusedUpFrontForWhatItCantSafelyTouch"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitUndo.swift",
+    "find": "            guard await isClean() else { return .failed(String(localized: \"Files changed since the reset; nothing was changed.\")) }",
+    "replace": "",
+    "rule": "Git reset Undo overwrites work done since",
+    "tests": "GitDiscardTests/aHardResetUndoKeepsChangesMadeSince"
+  },
+  {
+    "file": "Strata/Dev/Workbench/GitRebase.swift",
+    "find": "        guard expected == Set(todo.steps.map(\\.commit.id)), expected.count == todo.steps.count else {",
+    "replace": "        guard true else {",
+    "rule": "Git rebase runs a plan that leaves commits out",
+    "tests": "GitRebaseTests"
   }
 ]

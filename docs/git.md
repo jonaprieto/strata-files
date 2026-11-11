@@ -1,7 +1,7 @@
 # Git in Strata
 
 Strata shows a repository's status in the pane, Magit-style: sections of changed files, their diffs a Tab away, and
-single keys that stage, unstage, commit, branch, fetch and push exactly what's selected. It is
+single keys that stage, unstage, commit, branch, fetch, push, stash and rebase exactly what's selected. It is
 fork-only; the design is in `docs/superpowers/specs/2026-11-10-git-workbench-design.md`.
 
 ## Opening it
@@ -20,6 +20,7 @@ and Reload stay on.
 | --- | --- |
 | `s` / `u` | Stage / unstage the selection: files, a section, a hunk, or lines of one hunk |
 | `S` / `U` | Stage everything / unstage everything |
+| `k` | Discard the selection: unstaged changes go back to the staged version, untracked files go to the Trash |
 | Tab | Show or hide the selected files' changes (on a section: all its files) |
 | Shift-Tab | Show or hide every file's changes |
 | `c` | Commit: `c` commit, `a` amend, `e` extend (staged changes into the last commit), `w` reword |
@@ -27,6 +28,8 @@ and Reload stay on.
 | `l` | Log: `l` the current branch, `a` all branches |
 | `b` | Branch: `b` switch, `c` new and switch, `n` new, `m` rename the current one, `k` delete |
 | `f` / `F` / `P` | Fetch (`f` the branch's remote, `a` all) / pull (`F` fast-forward only, `r` rebase) / push (`P`, `f` force with a lease) |
+| `z` | Stash: `z` everything with new files, `w` tracked files only, `a` apply, `p` pop, `k` drop |
+| `r` | Rebase: `i` interactively from a commit; during a rebase `r` continue, `s` skip, `a` abort |
 | `g` | Reload |
 | `n` `p`, `j` `k`, arrows | Move |
 | Return | Show the file in the pane |
@@ -34,21 +37,39 @@ and Reload stay on.
 | `q`, Escape | Back (from a diff or log to the status, from the status to the files) |
 
 A file's changes show as hunks and lines. Selecting a hunk and pressing `s` stages only that hunk; selecting some of
-its lines stages only those (a removed line left out stays, an added line left out isn't added). `u` works the same
-way. New, deleted and binary files change as a whole.
+its lines stages only those (a removed line left out stays, an added line left out isn't added). `u` and `k` work the
+same way. New, deleted and binary files change as a whole.
 
 ## Diffs and history
 
 `d` opens a whole diff over the status: every file's hunks, Tab folds the selected files, Shift-Tab all of them. The
 log (`l`) shows each commit's lane in the graph, where branches fork and merge, the branches and tags at it, its
 author and date; a merge's dot is hollow, so it reads apart without relying on color. Return shows a commit's
-message and changes; with two commits selected, `d` shows what changed between them.
+message and changes; with two commits selected, `d` shows what changed between them. In the log, `x` resets the
+branch to the selected commit (soft, mixed, or hard after a confirmation) and `r` opens the rebase plan from it.
+
+## Taking things back
+
+Discard, reset, stash, dropping a stash and a finished rebase each register Edit ▸ Undo (⌘Z). What they replaced is
+kept in the repository under `refs/strata/undo/`, so git's garbage collection can't take it, and the refs go once
+undone. Undo checks first that nothing changed since: a file edited after a discard, a commit made after a reset or
+a rebase, a newer stash on top. If anything did, it changes nothing and says why. Untracked files go through Strata's
+own Move to Trash, with its Undo and History.
 
 ## Branches, pull and push
 
 Switching branches never overwrites local changes (git's own refusal is kept), a branch with commits nowhere else is
 deleted only after a second, explicit choice, pull only fast-forwards unless you ask it to rebase, and push never
 forces except with a lease on what you last fetched.
+
+## Interactive rebase
+
+The plan lists the commits oldest first. `p` pick, `r` reword (asks for the message), `e` edit (stops after it),
+`s` squash, `f` fixup and `d` drop set the selected commit's action; ⌥↑ and ⌥↓ or dragging reorder; Return starts and
+`q` cancels. A dropped commit is struck through. Strata writes git's todo itself and no editor opens; the plan must
+name exactly the commits git would rebase, so none is ever left out silently. When git stops (an edit or a
+conflict), the status shows it: change or resolve the files, stage them, then `r` `r` continues, `r` `s` skips and
+`r` `a` puts the branch back as it was.
 
 ## Trust
 
