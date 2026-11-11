@@ -37,8 +37,9 @@ package nonisolated enum GitSnapshots {
         let environment = ["GIT_INDEX_FILE": index.path]
         guard await GitRunner.run(["read-tree", "--end-of-options", id], in: repository.root, timeout: 60, environment: environment).succeeded,
               await GitRunner.run(["checkout-index", "-a", "-f", "--prefix=" + staging.path + "/"], in: repository.root,
-                                  timeout: 300, environment: environment).succeeded,
-              (try? fm.moveItem(at: isFolder(staging) ? staging : emptyFolder(staging), to: top)) != nil else { return nil }
+                                  timeout: 300, environment: environment).succeeded else { return nil }
+        if isFolder(staging) { await date(staging, as: id, in: repository) }
+        guard (try? fm.moveItem(at: isFolder(staging) ? staging : emptyFolder(staging), to: top)) != nil else { return nil }
         touch(commitFolder)
         evict(beside: commitFolder)
         return top
@@ -54,6 +55,18 @@ package nonisolated enum GitSnapshots {
     private static func isFolder(_ url: URL) -> Bool {
         var info = stat()
         return lstat(url.path, &info) == 0 && (info.st_mode & S_IFMT) == S_IFDIR
+    }
+
+    /// Checked-out files are dated now; they take the commit's author date, the one the log shows (as `git archive`
+    /// dates every file by its commit). Links keep their own date set, never their target's.
+    private static func date(_ staging: URL, as commit: String, in repository: GitRepository) async {
+        let run = await GitRunner.run(["show", "-s", "--format=%at", "--end-of-options", commit], in: repository.root, timeout: 10)
+        guard run.succeeded, let seconds = Int(String(decoding: run.output, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
+        var times = [timeval(tv_sec: seconds, tv_usec: 0), timeval(tv_sec: seconds, tv_usec: 0)]
+        let paths = (FileManager.default.enumerator(atPath: staging.path)?.allObjects as? [String]) ?? []
+        // Children first, so dating a file doesn't move its folder's date again.
+        for path in paths.reversed() { lutimes(staging.appending(path: path).path, &times) }
+        lutimes(staging.path, &times)
     }
 
     /// A commit with no files checks out nothing; its snapshot is an empty folder.
