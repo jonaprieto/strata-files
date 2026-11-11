@@ -353,6 +353,8 @@ package final class TagStore {
     /// themselves are written as undo work, away from the main thread.
     private func registerUndo(_ changes: [Change], undo: UndoManager?) {
         guard let undo else { return }
+        let step = undo.beginStep()
+        defer { undo.endStep(step) }
         undo.registerUndo(withTarget: undo) { [weak self] undo in
             MainActor.assumeIsolated {
                 guard let self else { return }

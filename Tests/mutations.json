@@ -9821,5 +9821,12 @@
     "replace": "        return true",
     "rule": "Watching a folder reads it again for changes made before it was shown",
     "tests": "BrowserWatchingTests/aFileRewrittenInPlaceReadsTheFolderAgain"
+  },
+  {
+    "file": "Strata/Model/FileOps.swift",
+    "find": "        let step = undo.beginStep()\n        defer { undo.endStep(step) }\n        undo.registerUndo(withTarget: undo) { target in",
+    "replace": "        undo.registerUndo(withTarget: undo) { target in",
+    "rule": "Undo after Move to Trash stays off until another event",
+    "tests": "UndoGroupingTests"
   }
 ]
