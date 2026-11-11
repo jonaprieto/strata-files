@@ -36,7 +36,12 @@ import Testing
         owner.toggleTerminalDrawer(nil)
         #expect(!owner.split.terminal.isShown)
         #expect(owner.split.terminal.heightConstraint.constant == 0)
+        let button = NSToolbarItem(itemIdentifier: BrowserToolbar.identifier(.toggleTerminalDrawer))
+        #expect(owner.validateToolbarItem(button))
+        #expect(button.toolTip == String(localized: "Show Terminal"))
         owner.toggleTerminalDrawer(nil)
+        #expect(owner.validateToolbarItem(button))
+        #expect(button.toolTip == String(localized: "Hide Terminal"))
         // Shown again, the same shell: never a second one.
         #expect(started.count == 1)
         withExtendedLifetime((tree, environment)) {}

@@ -26,12 +26,33 @@ extension BrowserWindowController: NSToolbarDelegate, NSToolbarItemValidation {
     }
 
     func validateToolbarItem(_ item: NSToolbarItem) -> Bool {
-        if let command = BrowserToolbar.command(item.itemIdentifier) { return toolbarCommandAvailable(command) }
+        if let command = BrowserToolbar.command(item.itemIdentifier) {
+            showToggleState(item, command)
+            return toolbarCommandAvailable(command)
+        }
         switch item.itemIdentifier {
         case .back: return validateMenuItem(StrataCommand.goBack.menuItem())
         case .forward: return validateMenuItem(StrataCommand.goForward.menuItem())
         case .viewMode: return true
         default: return true
+        }
+    }
+
+    /// Git Status and the terminal show whether they're on: the accent color on the branch, a filled terminal, and
+    /// a tooltip saying what a click does.
+    private func showToggleState(_ item: NSToolbarItem, _ command: StrataCommand) {
+        switch command.id {
+        case StrataCommand.toggleGitStatus.id:
+            let on = browser.gitStatus != nil
+            item.toolTip = on ? String(localized: "Hide Git Status") : String(localized: "Show Git Status")
+            let accent = NSImage.SymbolConfiguration(paletteColors: [.controlAccentColor])
+            item.image = on ? command.image?.withSymbolConfiguration(accent) : command.image
+        case StrataCommand.toggleTerminalDrawer.id:
+            let on = split.terminal.isShown
+            item.toolTip = on ? String(localized: "Hide Terminal") : String(localized: "Show Terminal")
+            item.image = NSImage(systemSymbolName: on ? "apple.terminal.fill" : "apple.terminal", accessibilityDescription: item.toolTip)
+        default:
+            break
         }
     }
 

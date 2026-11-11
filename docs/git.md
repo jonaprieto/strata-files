@@ -6,7 +6,7 @@ fork-only; the design is in `docs/superpowers/specs/2026-11-10-git-workbench-des
 
 ## Opening it
 
-⌃⌘G (View ▸ Show Git Status, or "Git" in the command palette) shows the status of the repository the pane's folder
+⌃⌘G (View ▸ Show Git Status, the branch button in the toolbar, or "Git" in the command palette) shows the status of the repository the pane's folder
 is in. The other pane stays a file browser. ⌃⌘G again, `q` or Escape goes back to the files; Return on a file goes
 back and selects it. Moving to a folder outside the repository closes the status; moving within it keeps it.
 
@@ -88,13 +88,17 @@ using your own ssh agent and credential helpers.
 
 ## Terminal drawer
 
-⌃⌘` (View ▸ Show Terminal) opens a terminal under the panes, started in the active pane's folder with your login
+⌃⌘` (View ▸ Show Terminal, or the terminal button in the toolbar) opens a terminal under the panes, started in the active pane's folder with your login
 shell; ⌃⌘` again hides it, and the same shell is there when it comes back. Drag its top edge to resize it. Files
 dropped on it are typed as quoted paths, and Go to Pane Folder types a `cd` to the active pane's folder; neither
 presses Return, so nothing runs until you do (a name holding a control character isn't typed at all). Open in
 Terminal (⌃⌘T) still opens Ghostty, iTerm, Warp or Terminal.
 
 ## Feedback and accessibility
+
+Both toolbar buttons show when they're on: the branch turns the accent color while the status shows, the terminal
+fills while the drawer is open, and each tooltip says what a click does. They're in the default toolbar and can be
+removed or moved with Customize Toolbar.
 
 The header names the repository and branch, how far it is from its upstream, any merge or rebase in progress and the
 number of stashes, and shows a spinner while git runs. What each command did, or git's own error, shows under the

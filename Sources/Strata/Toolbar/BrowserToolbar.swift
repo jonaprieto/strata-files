@@ -4,11 +4,12 @@ import AppKit
 final class BrowserToolbar {
     static let defaults: [NSToolbarItem.Identifier] = [
         .toggleSidebar, .sidebarMode, .sidebarTrackingSeparator, .back, .forward, .flexibleSpace, .pathBar,
-        .flexibleSpace, .viewMode, .dualPane, .share, .search, .transfers, .inspectorTrackingSeparator, .toggleInspector,
+        .flexibleSpace, .viewMode, .dualPane, identifier(.toggleGitStatus), identifier(.toggleTerminalDrawer), .share, .search,
+        .transfers, .inspectorTrackingSeparator, .toggleInspector,
     ]
     static let commands: [StrataCommand] = [
         .newFolder, .newFile, .moveToTrash, .copyToOtherPane, .moveToOtherPane, .compareWithOtherPane, .connectToServer,
-        .openInTerminal, .toggleQuickLook, .reloadFolder, .showCommandPalette,
+        .openInTerminal, .toggleQuickLook, .reloadFolder, .showCommandPalette, .toggleGitStatus, .toggleTerminalDrawer,
     ]
     static func identifier(_ command: StrataCommand) -> NSToolbarItem.Identifier { .init("command." + command.id) }
     /// The label under a toolbar icon; the customization palette and the tooltip keep the full menu title.
@@ -18,6 +19,8 @@ final class BrowserToolbar {
         case StrataCommand.moveToOtherPane.id: String(localized: "Move To", comment: "Toolbar button label: move the selection to the other pane")
         case StrataCommand.compareWithOtherPane.id: String(localized: "Sync", comment: "Toolbar button label: compare and sync the two panes")
         case StrataCommand.connectToServer.id: String(localized: "Connect", comment: "Toolbar button label: connect to a server")
+        case StrataCommand.toggleGitStatus.id: String(localized: "Git")
+        case StrataCommand.toggleTerminalDrawer.id: String(localized: "Terminal")
         default: command.title
         }
     }
