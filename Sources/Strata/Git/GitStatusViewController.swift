@@ -172,6 +172,9 @@ final class GitStatusViewController: NSViewController {
         case "l": showLogTransient()
         case "b": showBranchTransient()
         case "f": showFetchTransient()
+        case "k": discardSelection()
+        case "z": showStashTransient()
+        case "r": showRebaseTransient()
         case "F": showPullTransient()
         case "P": showPushTransient()
         case "g": reload()
@@ -322,6 +325,7 @@ final class GitStatusViewController: NSViewController {
             case .failed(let text)?: self.show(text.isEmpty ? String(localized: "Git refused.") : text, isError: true)
             case .emptyMessage?: self.show(String(localized: "A commit needs a message."), isError: true)
             case .nothingStaged?: self.show(String(localized: "Nothing is staged to commit."), isError: true)
+            case .stopped?: self.show(String(localized: "The rebase stopped: change or resolve the files, stage them, then press r and r to continue."), isError: false)
             }
             self.reload()
         }
@@ -424,6 +428,18 @@ final class GitStatusViewController: NSViewController {
     func showLog(all: Bool) {
         let log = GitLogViewController(all: all, workbench: workbench)
         log.onClose = { [weak self] in self?.closeOverlay() }
+        log.onRebase = { [weak self, weak log] commit in
+            guard let self, let log, !log.all, let index = log.commits.firstIndex(of: commit) else { return Sounds.beep() }
+            self.editRebase(Array(log.commits[0...index].reversed()), onto: commit.parents.first)
+        }
+        log.onReset = { [weak self, weak log] commit in
+            guard let self, let log else { return }
+            GitTransient.show(String(localized: "Reset to \(commit.shortID)"), [
+                .init(key: "s", title: String(localized: "Soft: keep the index and files")) { [weak self] in self?.reset(to: commit, mode: .soft) },
+                .init(key: "m", title: String(localized: "Mixed: keep the files")) { [weak self] in self?.reset(to: commit, mode: .mixed) },
+                .init(key: "h", title: String(localized: "Hard: the files too…")) { [weak self] in self?.reset(to: commit, mode: .hard) },
+            ], from: log.table, owner: self)
+        }
         log.onShowDiff = { [weak self] kind, title in self?.showDiff(kind, title: title) }
         push(log, focus: log.table, announcing: log.heading)
     }
@@ -450,7 +466,8 @@ final class GitStatusViewController: NSViewController {
         (top as? GitLogViewController)?.stop()
         top.view.removeFromSuperview()
         top.removeFromParent()
-        let focus: NSView = (overlays.last as? GitLogViewController)?.table ?? (overlays.last as? GitDiffViewController)?.table ?? table
+        let focus: NSView = (overlays.last as? GitLogViewController)?.table ?? (overlays.last as? GitDiffViewController)?.table
+            ?? (overlays.last as? GitRebaseEditor)?.table ?? table
         view.window?.makeFirstResponder(focus)
     }
 
@@ -516,6 +533,195 @@ final class GitStatusViewController: NSViewController {
             case .rename: String(localized: "Renamed the branch.")
             case .delete: String(localized: "Deleted the branch.")
             }
+        }
+    }
+
+    // MARK: - Discard, reset and stash
+
+    /// The last command that can be taken back, also registered with the window's ⌘Z.
+    private(set) var lastUndo: (undo: GitUndo, name: String)?
+
+    /// Runs `body`, and registers what takes it back.
+    private func performUndoable(_ name: String, _ body: @escaping () async -> (GitOutcome, GitUndo?)?, done: @escaping () -> String?) {
+        perform { [weak self] in
+            guard let result = await body() else { return nil }
+            if let undo = result.1 { self?.register(undo, name: name) }
+            return result.0
+        } done: { done() }
+    }
+
+    private func register(_ undo: GitUndo, name: String) {
+        lastUndo = (undo, name)
+        guard let manager = view.window?.undoManager else { return }
+        manager.registerUndo(withTarget: self) { target in target.runUndo(undo) }
+        manager.setActionName(name)
+    }
+
+    /// Takes back a discard, reset or stash, if nothing has changed since.
+    func runUndo(_ undo: GitUndo) {
+        if lastUndo?.undo == undo { lastUndo = nil }
+        perform { [workbench] in await workbench.undo(undo) } done: { String(localized: "Undone.") }
+    }
+
+    /// `k`: unstaged changes of tracked files go back to their staged version; untracked files go to the Trash.
+    /// Both after a confirmation that names them.
+    func discardSelection() {
+        guard let status else { return }
+        let window = view.window
+        let prompts = prompts
+        let rows = selectedRows
+        let untracked = rows.compactMap { row -> String? in if case .file(.untracked, let path, _) = row { path } else { nil } }
+            + (rows.contains(.section(.untracked, count: status.untracked.count)) ? status.untracked : [])
+        let tracked = GitStatusOutline.plan(.stage, rows.filter { $0.section == .unstaged }, in: status)
+        guard !untracked.isEmpty || tracked != nil else {
+            show(String(localized: "Only unstaged changes and untracked files can be discarded; unstage first."), isError: true)
+            return Sounds.beep()
+        }
+        let names = (untracked + {
+            switch tracked {
+            case .paths(let paths)?: paths
+            case .hunk(let file, _, _)?: [file.path]
+            case nil: []
+            }
+        }()).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        let listed = names.prefix(5).joined(separator: "\n") + (names.count > 5 ? "\n" + String(localized: "and \(names.count - 5) more", comment: "plural") : "")
+        let root = repository.root
+        let files = services.files
+        let undoManager = window?.undoManager
+        performUndoable(String(localized: "Discard")) { [workbench] in
+            guard await prompts.confirm(String(localized: "Discard these changes?"),
+                                        listed + "\n\n" + String(localized: "Untracked files go to the Trash. Edit ▸ Undo brings the rest back."),
+                                        String(localized: "Discard"), window) else { return nil }
+            if !untracked.isEmpty {
+                do { try await files.trash(untracked.map { root.appending(path: $0) }, undo: undoManager) }
+                catch { return (.failed(error.localizedDescription), nil) }
+            }
+            switch tracked {
+            case .paths(let paths)?: return await workbench.discard(paths)
+            case .hunk(let file, let hunk, let lines)?: return await workbench.discard(file, hunk: hunk, lines: lines)
+            case nil: return (.done, nil)
+            }
+        } done: {
+            String(localized: "Discarded \(names.count) files", comment: "plural")
+        }
+    }
+
+    func showStashTransient() {
+        GitTransient.show(String(localized: "Stash"), stashItems, from: table, owner: self)
+    }
+
+    var stashItems: [GitTransient.Item] {
+        [
+            .init(key: "z", title: String(localized: "Stash everything, new files too")) { [weak self] in self?.stash(.push(untracked: true)) },
+            .init(key: "w", title: String(localized: "Stash changes to tracked files")) { [weak self] in self?.stash(.push(untracked: false)) },
+            .init(key: "a", title: String(localized: "Apply a stash…")) { [weak self] in self?.stash(.apply) },
+            .init(key: "p", title: String(localized: "Pop a stash…")) { [weak self] in self?.stash(.pop) },
+            .init(key: "k", title: String(localized: "Drop a stash…")) { [weak self] in self?.stash(.drop) },
+        ]
+    }
+
+    enum StashCommand: Equatable { case push(untracked: Bool), apply, pop, drop }
+
+    func stash(_ command: StashCommand) {
+        let window = view.window
+        let prompts = prompts
+        performUndoable(String(localized: "Stash")) { [workbench] in
+            switch command {
+            case .push(let untracked):
+                let message = await prompts.name(String(localized: "Stash message (optional)"), "", window)
+                return await workbench.stashPush(includeUntracked: untracked, message: message)
+            case .apply, .pop, .drop:
+                let stashes = await workbench.stashes()
+                guard !stashes.isEmpty else { return (.failed(String(localized: "There are no stashes.")), nil) }
+                let titles = stashes.map { "stash@{\($0.index)}: \($0.message)" }
+                guard let chosen = await prompts.choose(String(localized: "Which stash?"), titles, window),
+                      let index = titles.firstIndex(of: chosen) else { return nil }
+                switch command {
+                case .apply: return (await workbench.stashApply(index, pop: false), nil)
+                case .pop: return (await workbench.stashApply(index, pop: true), nil)
+                default:
+                    guard await prompts.confirm(String(localized: "Drop \(chosen)?"), String(localized: "Edit ▸ Undo stores it again."),
+                                                String(localized: "Drop"), window) else { return nil }
+                    return await workbench.stashDrop(index)
+                }
+            }
+        } done: {
+            switch command {
+            case .push: String(localized: "Stashed.")
+            case .apply: String(localized: "Applied the stash.")
+            case .pop: String(localized: "Popped the stash.")
+            case .drop: String(localized: "Dropped the stash.")
+            }
+        }
+    }
+
+    /// Moves the branch to `commit`: soft keeps the index and files, mixed keeps the files, hard resets them too
+    /// (after a confirmation). Each can be undone while nothing has moved since.
+    func reset(to commit: GitCommit, mode: GitResetMode) {
+        let window = view.window
+        let prompts = prompts
+        performUndoable(String(localized: "Reset")) { [workbench] in
+            if mode == .hard {
+                guard await prompts.confirm(String(localized: "Reset the branch and every file to \(commit.shortID)?"),
+                                            String(localized: "Uncommitted changes to tracked files are replaced. Edit ▸ Undo brings them and the branch back while nothing changes meanwhile."),
+                                            String(localized: "Reset"), window) else { return nil }
+            }
+            return await workbench.reset(to: commit.id, mode: mode)
+        } done: {
+            String(localized: "Reset to \(commit.shortID).")
+        }
+    }
+
+    // MARK: - Rebase
+
+    func showRebaseTransient() {
+        let rebasing: Bool = if case .rebasing = status?.operation { true } else { false }
+        let items: [GitTransient.Item] = rebasing ? [
+            .init(key: "r", title: String(localized: "Continue")) { [weak self] in self?.rebaseStep(.continue) },
+            .init(key: "s", title: String(localized: "Skip this commit")) { [weak self] in self?.rebaseStep(.skip) },
+            .init(key: "a", title: String(localized: "Abort, back to where it started")) { [weak self] in self?.rebaseStep(.abort) },
+        ] : [
+            .init(key: "i", title: String(localized: "Interactively, from a commit in the log…")) { [weak self] in
+                self?.showLog(all: false)
+                self?.show(String(localized: "Select the oldest commit to change and press r."), isError: false)
+            },
+        ]
+        GitTransient.show(String(localized: "Rebase"), items, from: table, owner: self)
+    }
+
+    enum RebaseStep { case `continue`, skip, abort }
+
+    func rebaseStep(_ step: RebaseStep) {
+        perform { [workbench] in
+            switch step {
+            case .continue: await workbench.rebaseContinue()
+            case .skip: await workbench.rebaseSkip()
+            case .abort: await workbench.rebaseAbort()
+            }
+        } done: {
+            switch step {
+            case .continue, .skip: String(localized: "The rebase finished.")
+            case .abort: String(localized: "The rebase was aborted; the branch is as it was.")
+            }
+        }
+    }
+
+    /// The plan for rebasing `commits` (oldest first) onto `base`.
+    func editRebase(_ commits: [GitCommit], onto base: String?) {
+        let editor = GitRebaseEditor(todo: GitRebaseTodo(commits), base: base)
+        editor.onCancel = { [weak self] in self?.closeOverlay() }
+        editor.onStart = { [weak self] todo, base in
+            self?.closeAllOverlays()
+            self?.rebase(todo, onto: base)
+        }
+        push(editor, focus: editor.table, announcing: String(localized: "Rebase plan, oldest commit first"))
+    }
+
+    func rebase(_ todo: GitRebaseTodo, onto base: String?) {
+        performUndoable(String(localized: "Rebase")) { [workbench] in
+            await workbench.rebase(todo, onto: base)
+        } done: {
+            String(localized: "Rebased.")
         }
     }
 
@@ -591,6 +797,9 @@ final class GitStatusViewController: NSViewController {
             .init(key: "d", title: String(localized: "Diff…")) { [weak self] in self?.showDiffTransient() },
             .init(key: "l", title: String(localized: "Log…")) { [weak self] in self?.showLogTransient() },
             .init(key: "b", title: String(localized: "Branches…")) { [weak self] in self?.showBranchTransient() },
+            .init(key: "k", title: String(localized: "Discard the selection…")) { [weak self] in self?.discardSelection() },
+            .init(key: "z", title: String(localized: "Stash…")) { [weak self] in self?.showStashTransient() },
+            .init(key: "r", title: String(localized: "Rebase…")) { [weak self] in self?.showRebaseTransient() },
             .init(key: "f", title: String(localized: "Fetch…")) { [weak self] in self?.showFetchTransient() },
             .init(key: "F", title: String(localized: "Pull…")) { [weak self] in self?.showPullTransient() },
             .init(key: "P", title: String(localized: "Push…")) { [weak self] in self?.showPushTransient() },

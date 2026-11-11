@@ -239,6 +239,61 @@ import Testing
         return (owner, try await open(owner.panes[0].browser))
     }
 
+    @Test func kDiscardsAfterAskingAndUndoBringsItBack() async throws {
+        let repo = try await GitFixture(["a": "1\n", "keep": "1\n"])
+        try repo.write("a", "work\n")
+        try repo.write("keep", "work\n")
+        try repo.write("new", "untracked\n")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer {
+            close(owner)
+            repo.tree.removeFromTrash(history: environment.services.transfers.history)
+        }
+        var asked: [String] = []
+        status.prompts.confirm = { title, detail, _, _ in asked.append(detail); return false }
+        select(status) { ["a", "new"].contains($0.path ?? "") }
+        status.discardSelection()
+        await settle(status)
+        // Declined: nothing changes.
+        #expect(asked.count == 1 && asked[0].contains("new") && asked[0].contains("a"))
+        #expect(repo.text("a") == "work\n" && repo.text("new") == "untracked\n")
+
+        status.prompts.confirm = { _, _, _, _ in true }
+        select(status) { ["a", "new"].contains($0.path ?? "") }
+        status.discardSelection()
+        await settle(status)
+        #expect(repo.text("a") == "1\n")
+        #expect(repo.text("new") == nil)
+        #expect(repo.text("keep") == "work\n")
+
+        let undo = try #require(status.lastUndo)
+        status.runUndo(undo.undo)
+        await settle(status)
+        #expect(repo.text("a") == "work\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func stagedRowsAreNeverDiscarded() async throws {
+        let repo = try await GitFixture(["a": "1\n"])
+        try repo.write("a", "staged\n")
+        try await repo.git("add", "a")
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        var asked = false
+        status.prompts.confirm = { _, _, _, _ in asked = true; return true }
+        select(status) { $0.section == .staged }
+        status.discardSelection()
+        await settle(status)
+        #expect(!asked)
+        #expect(status.message?.isError == true)
+        #expect(try await repo.git("show", ":a") == "staged\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
     @Test func theLogShowsCommitsWithTheirGraphAndDiffs() async throws {
         let repo = try await GitFixture(["a": "1\n"])
         try repo.write("a", "2\n")
@@ -265,6 +320,15 @@ import Testing
         #expect(diff.handleKey("q"))
         #expect(status.logView === log)
 
+        // A hard reset from the log, asked first, and undone.
+        status.prompts.confirm = { _, _, _, _ in true }
+        status.reset(to: log.commits[1], mode: .hard)
+        await settle(status)
+        #expect(repo.text("a") == "1\n")
+        status.runUndo(try #require(status.lastUndo).undo)
+        await settle(status)
+        #expect(repo.text("a") == "2\n")
+        #expect(try await repo.git("log", "--format=%s", "-1") == "second\n")
         withExtendedLifetime((environment, elsewhere)) {}
     }
 
@@ -288,6 +352,43 @@ import Testing
         status.branch(.create)
         await settle(status)
         #expect(try await repo.git("branch", "--format=%(refname:short)") == "main\ntopic\n")
+        withExtendedLifetime((environment, elsewhere)) {}
+    }
+
+    @Test func rebasingFromTheLogWithTheEditor() async throws {
+        let repo = try await GitFixture(["base": "0\n"])
+        for name in ["one", "two", "three"] {
+            try repo.write(name, name + "\n")
+            try await repo.git("add", name)
+            try await repo.git("commit", "-q", "-m", name)
+        }
+        let elsewhere = try TestTree("x")
+        let environment = try IndependentEnvironment()
+        let (owner, status) = try await trustedWindow(repo, environment, elsewhere)
+        defer { close(owner) }
+        status.showLog(all: false)
+        let log = try #require(status.logView)
+        _ = log.view
+        await log.loadTask?.value
+        // "two" and everything newer.
+        log.table.selectRowIndexes([1], byExtendingSelection: false)
+        #expect(log.handleKey("r"))
+        let editor = try #require(status.overlays.last as? GitRebaseEditor)
+        _ = editor.view
+        #expect(editor.todo.steps.map(\.commit.subject) == ["two", "three"])
+        #expect(editor.handleKey("d"))
+        #expect(editor.handleKey(String(Character(UnicodeScalar(NSDownArrowFunctionKey)!)), option: true))
+        #expect(editor.todo.steps.map(\.commit.subject) == ["three", "two"])
+        #expect(GitRebaseEditor.spoken(editor.todo.steps[1]).hasPrefix("drop"))
+        #expect(editor.handleKey("\r"))
+        await settle(status)
+        #expect(status.overlays.isEmpty)
+        #expect(try await repo.git("log", "--format=%s") == "three\none\nfirst\n")
+        #expect(repo.text("two") == nil)
+
+        status.runUndo(try #require(status.lastUndo).undo)
+        await settle(status)
+        #expect(try await repo.git("log", "--format=%s") == "three\ntwo\none\nfirst\n")
         withExtendedLifetime((environment, elsewhere)) {}
     }
 

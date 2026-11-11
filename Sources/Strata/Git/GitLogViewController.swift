@@ -10,6 +10,9 @@ final class GitLogViewController: NSViewController {
     private let workbench: GitWorkbench
     var onClose: () -> Void = {}
     var onShowDiff: (GitDiffKind, String) -> Void = { _, _ in }
+    var onReset: (GitCommit) -> Void = { _ in }
+    /// Rebase from the selected commit (it and every newer one).
+    var onRebase: (GitCommit) -> Void = { _ in }
     private(set) var commits: [GitCommit] = []
     private(set) var graph: [GitGraphRow] = []
     private(set) var hasMore = true
@@ -116,6 +119,8 @@ final class GitLogViewController: NSViewController {
         switch characters {
         case "\r": showSelected()
         case "d": diffSelected()
+        case "x": if let commit = selectedCommits.first { onReset(commit) } else { Sounds.beep() }
+        case "r": if let commit = selectedCommits.first { onRebase(commit) } else { Sounds.beep() }
         case "q", "\u{1b}": onClose()
         case "n", "j": move(1)
         case "p", "k": move(-1)

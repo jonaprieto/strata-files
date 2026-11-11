@@ -68,6 +68,9 @@ package final class GitWriter {
         return .success(result)
     }
 
+    /// Strata changed working files itself (an Undo): status refreshes as after a git command.
+    package func noteChanged(_ repository: GitRepository) { didRun(repository) }
+
     private func environment(for options: Options) -> [String: String] {
         var environment = [
             // A command that unexpectedly wants an editor fails instead of waiting for one nobody sees.
