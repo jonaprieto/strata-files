@@ -211,6 +211,8 @@ extension BrowserWindowController {
         commands.add(.newWindow)
         commands.add(.openInTerminal)
         commands.add(.copyPath)
+        commands.add(.copyRelativePath, keywords: ["Relative", "Repository", "Git"])
+        commands.add(.copyName, keywords: ["Filename"])
         commands.add(.toggleHiddenFiles, title: services.preferences.showHidden ? String(localized: "Hide Hidden Files") : String(localized: "Show Hidden Files"))
         commands.add(.toggleFoldersFirst, title: services.preferences.foldersFirst ? String(localized: "Mix Folders with Files") : String(localized: "Keep Folders on Top"))
         commands.add(.toggleInspector, title: splitController.splitViewItems.last?.isCollapsed == true ? String(localized: "Show Inspector") : String(localized: "Hide Inspector"))

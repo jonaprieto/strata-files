@@ -21,6 +21,8 @@ enum DiredKey {
         case "+": self = .run(.newFolder)
         case "C": self = .run(.copyToOtherPane)
         case "D": self = .run(.moveToTrash)
+        case "w": self = .run(.copyName)
+        case "W": self = .run(.copyRelativePath)
         default: return nil
         }
     }

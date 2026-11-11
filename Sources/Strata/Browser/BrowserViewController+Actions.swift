@@ -205,9 +205,21 @@ extension BrowserViewController {
     }
 
     @objc func copyPath(_ sender: Any?) {
-        let here = (effectiveMode == .columns ? columns.activeDirectory : nil) ?? directory
-        clipboardCommands.copyPaths(selectedURLs.isEmpty ? [here].compactMap { $0 } : selectedURLs)
+        clipboardCommands.copyPaths(copyTargets)
     }
+
+    @objc func copyName(_ sender: Any?) {
+        clipboardCommands.copyNames(copyTargets)
+    }
+
+    @objc func copyRelativePath(_ sender: Any?) {
+        guard let folder = copyFolder else { return }
+        clipboardCommands.copyRelativePaths(copyTargets, folder: folder)
+    }
+
+    private var copyFolder: URL? { (effectiveMode == .columns ? columns.activeDirectory : nil) ?? directory }
+    /// The selection, or the folder shown when nothing is selected.
+    private var copyTargets: [URL] { selectedURLs.isEmpty ? [copyFolder].compactMap { $0 } : selectedURLs }
 
     /// Adds the selected folders (or, with nothing selected, this folder) to the sidebar's favorites.
     @objc func addToSidebar(_ sender: Any?) {

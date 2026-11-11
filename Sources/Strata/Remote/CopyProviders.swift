@@ -104,6 +104,10 @@ package nonisolated struct CopyProviders: Sendable {
     package func invalidate(_ folder: URL) async { await provider(for: folder)?.invalidate(folder) }
     package func reveal(_ url: URL) async -> Bool { await provider(for: url)?.reveal(url) ?? false }
     package func displayPath(_ url: URL) -> String? { provider(for: url)?.displayPath(url) }
+    /// A server's, a container's or a provider's copy, whose paths mean something only there.
+    package func isCopy(_ url: URL) -> Bool {
+        remoteCopies.contains(url) || containerCopies.contains(url) || contains(url)
+    }
     package func clipboardPath(_ url: URL) -> String? {
         if remoteCopies.contains(url) { return remoteCopies.displayPath(url) }
         if containerCopies.contains(url) {

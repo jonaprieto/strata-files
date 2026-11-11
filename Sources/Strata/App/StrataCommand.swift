@@ -81,6 +81,8 @@ struct StrataCommand {
     static let showHistory = Self(String(localized: "History…"), #selector(AppDelegate.showHistory(_:)), .application, "z", [.command, .option], symbol: "clock.arrow.circlepath")
     static let pasteAndMove = Self(String(localized: "Move Item Here"), #selector(BrowserViewController.pasteAndMove(_:)), .browser, "v", [.command, .option], symbol: "arrow.right.doc.on.clipboard")
     static let copyPath = Self(String(localized: "Copy Path"), #selector(BrowserViewController.copyPath(_:)), .browser, "c", [.command, .option], symbol: "link")
+    static let copyName = Self(String(localized: "Copy Name"), #selector(BrowserViewController.copyName(_:)), .browser, symbol: "textformat")
+    static let copyRelativePath = Self(String(localized: "Copy Relative Path"), #selector(BrowserViewController.copyRelativePath(_:)), .browser, "c", [.command, .option, .shift], symbol: "link.badge.plus")
     static let biggerIcons = Self(String(localized: "Bigger Icons"), #selector(BrowserViewController.biggerIcons(_:)), .browser, "+", symbol: "plus.magnifyingglass")
     static let biggerIconsAlias = Self(String(localized: "Bigger Icons"), #selector(BrowserViewController.biggerIcons(_:)), .browser, "=", id: "biggerIcons:~1", symbol: "plus.magnifyingglass")
     static let smallerIcons = Self(String(localized: "Smaller Icons"), #selector(BrowserViewController.smallerIcons(_:)), .browser, "-", symbol: "minus.magnifyingglass")

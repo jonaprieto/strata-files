@@ -77,6 +77,8 @@ struct BrowserContextMenu {
         add(.copy, to: menu)
         add(.cut, to: menu)
         add(.copyPath, to: menu)
+        add(.copyRelativePath, to: menu)
+        add(.copyName, to: menu)
         add(.addToShelf, to: menu)
         if !inTrash, facts.canTag { addTagItems(to: menu) }
         if selected.contains(where: \.isFolder) { add(.addToSidebar, to: menu) }
@@ -147,6 +149,7 @@ struct BrowserContextMenu {
         menu.addItem(.separator())
         add(.openInTerminal, to: menu)
         add(.copyPath, to: menu)
+        add(.copyRelativePath, to: menu)
         add(.showInFinder, to: menu)
         menu.addItem(.separator())
         add(.toggleHiddenFiles, title: hiddenFilesTitle, to: menu)
@@ -197,6 +200,7 @@ struct BrowserContextMenu {
         menu.addItem(.separator())
         add(.copy, to: menu)
         add(.copyPath, to: menu)
+        add(.copyName, to: menu)
     }
 
     private func addArchiveSelectionItems(to menu: NSMenu) {
