@@ -26,8 +26,17 @@ final class GitStatusViewController: NSViewController {
 
     let table = GitStatusTableView()
     private let scrollView = NSScrollView()
-    private let header = GitStatusHeader()
+    let header = GitStatusHeader()
     private let messageLabel = NSTextField(wrappingLabelWithString: "")
+    private let messageIcon = NSImageView()
+    /// The symbol beside the message, so it doesn't read by color alone.
+    private(set) var messageSymbol: String?
+    private lazy var messageRow = NSStackView(views: [messageIcon, messageLabel])
+    let hintLabel = NSTextField(labelWithString: String(localized: "s stage · u unstage · k discard · c commit · Tab changes · ? all keys · q back",
+                                                         comment: "Git status: the keys shown under the list"))
+    private lazy var footer = NSStackView(views: [messageRow, hintLabel])
+    /// What each item of the right-click menu runs.
+    private var menuActions: [() -> Void] = []
 
     init(workbench: GitWorkbench, services: BrowserServices) {
         self.workbench = workbench
@@ -68,7 +77,21 @@ final class GitStatusViewController: NSViewController {
         messageLabel.textColor = .secondaryLabelColor
         messageLabel.isHidden = true
         messageLabel.setAccessibilityRole(.staticText)
-        for subview in [header, scrollView, messageLabel] as [NSView] {
+        messageIcon.setContentHuggingPriority(.required, for: .horizontal)
+        messageRow.orientation = .horizontal
+        messageRow.alignment = .firstBaseline
+        messageRow.spacing = 4
+        messageRow.isHidden = true
+        hintLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hintLabel.textColor = .secondaryLabelColor
+        hintLabel.lineBreakMode = .byTruncatingTail
+        hintLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        footer.orientation = .vertical
+        footer.alignment = .leading
+        footer.spacing = 2
+        table.menu = NSMenu()
+        table.menu?.delegate = self
+        for subview in [header, scrollView, footer] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
@@ -79,16 +102,15 @@ final class GitStatusViewController: NSViewController {
             scrollView.topAnchor.constraint(equalTo: header.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            messageLabel.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 4),
-            messageLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
-            messageLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
-            messageLabel.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
+            footer.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 4),
+            footer.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+            footer.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor, constant: -12),
+            footer.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
         ])
         view = root
         services.preferences.notifications.addObserver(self, selector: #selector(writerChanged), name: .gitWriteStateChanged, object: services.gitWriter)
         services.preferences.notifications.addObserver(self, selector: #selector(trustChanged), name: .gitTrustChanged, object: services.gitWriter.trust)
         NotificationCenter.default.addObserver(self, selector: #selector(statusChanged(_:)), name: .gitStatusDidChange, object: services.git)
-        header.show(repository: repository, status: nil, trusted: false, busy: false)
         reload()
     }
 
@@ -112,6 +134,7 @@ final class GitStatusViewController: NSViewController {
         let mine = generation
         reloadAgain = false
         isLoading = true
+        updateHeader()
         loadTask = Task { [weak self, workbench] in
             let status = await workbench.load()
             let trusted = await workbench.writer.trust.isTrusted(workbench.repository)
@@ -130,17 +153,31 @@ final class GitStatusViewController: NSViewController {
         // On the main thread: the part of a reload the user can feel.
         let interval = gitSignposts.beginInterval("git status apply")
         defer { gitSignposts.endInterval("git status apply", interval) }
-        let selectedKeys = table.selectedRowIndexes.compactMap { rows.indices.contains($0) ? rows[$0] : nil }
+        let previous = table.selectedRowIndexes
+        let selectedKeys = previous.compactMap { rows.indices.contains($0) ? rows[$0].identity : nil }
         self.status = status
         isTrusted = trusted
         if status == nil { show(String(localized: "Git couldn’t read this repository."), isError: true) }
         rows = status.map { GitStatusOutline.rows($0, expanded: expanded) } ?? []
         table.reloadData()
-        // The same rows stay selected when they're still there; otherwise the first change.
-        let kept = IndexSet(rows.indices.filter { selectedKeys.contains(rows[$0]) })
-        let first = rows.firstIndex { if case .file = $0 { true } else { false } }
-        table.selectRowIndexes(kept.isEmpty ? IndexSet(first.map { [$0] } ?? []) : kept, byExtendingSelection: false)
-        header.show(repository: repository, status: status, trusted: trusted, busy: workbench.writer.isRunning(in: repository))
+        // The same rows stay selected when they're still there; otherwise the file now in their place, so staging
+        // one file after another moves on to the next, as in Magit.
+        let kept = IndexSet(rows.indices.filter { selectedKeys.contains(rows[$0].identity) })
+        let next = Self.nearestFile(to: previous.first ?? 0, in: rows)
+        table.selectRowIndexes(kept.isEmpty ? IndexSet(next.map { [$0] } ?? []) : kept, byExtendingSelection: false)
+        updateHeader()
+    }
+
+    /// The first file at or after `index`, else the last one before it.
+    static func nearestFile(to index: Int, in rows: [GitStatusRow]) -> Int? {
+        let isFile: (Int) -> Bool = { if case .file = rows[$0] { true } else { false } }
+        return rows.indices.first { $0 >= index && isFile($0) } ?? rows.indices.last { $0 < index && isFile($0) }
+    }
+
+    /// The spinner runs while git does, and while the status is first read.
+    private func updateHeader() {
+        header.show(repository: repository, status: status, trusted: isTrusted,
+                    busy: workbench.writer.isRunning(in: repository) || (isLoading && status == nil))
     }
 
     @objc private func statusChanged(_ notification: Notification) {
@@ -149,9 +186,7 @@ final class GitStatusViewController: NSViewController {
         if isLoading { reloadAgain = true } else { reload() }
     }
 
-    @objc private func writerChanged() {
-        header.show(repository: repository, status: status, trusted: isTrusted, busy: workbench.writer.isRunning(in: repository))
-    }
+    @objc private func writerChanged() { updateHeader() }
 
     @objc private func trustChanged() { reload() }
 
@@ -179,8 +214,9 @@ final class GitStatusViewController: NSViewController {
         case "c": showCommitTransient()
         case "?": helpClicked()
         case "q", "\u{1b}": onClose(nil)
-        case "n", "j": moveSelection(by: 1)
-        case "p", "k": moveSelection(by: -1)
+        // `k` discards here, so neither it nor `j` moves, unlike in the log and diff.
+        case "n": moveSelection(by: 1)
+        case "p": moveSelection(by: -1)
         case "\r": visitSelectedFile()
         default: return false
         }
@@ -300,7 +336,10 @@ final class GitStatusViewController: NSViewController {
     /// Runs one command at a time: a key pressed meanwhile is refused with a beep. An untrusted repository is asked
     /// about first; the command runs only once it's trusted.
     private func perform(_ body: @escaping () async -> GitOutcome?, done: @escaping () -> String?) {
-        guard commandTask == nil, !isStopped else { return Sounds.beep() }
+        guard commandTask == nil, !isStopped else {
+            if !isStopped { show(String(localized: "Git is still running a command here."), isError: true) }
+            return Sounds.beep()
+        }
         commandTask = Task { [weak self, workbench] in
             // Asked before the command's own questions, so none of them is asked twice.
             var outcome: GitOutcome?
@@ -316,7 +355,7 @@ final class GitStatusViewController: NSViewController {
             self.commandTask = nil
             switch outcome {
             case nil: break
-            case .done?: done().map { self.show($0, isError: false) }
+            case .done?: done().map { self.show($0, isError: false, done: true) }
             case .refused(.untrusted)?: self.show(String(localized: "Read only: this repository isn’t trusted."), isError: true)
             case .refused(.busy)?: self.show(String(localized: "Git is still running a command here."), isError: true)
             case .refused(.gitMissing)?: self.show(String(localized: "Git isn’t installed."), isError: true)
@@ -425,6 +464,7 @@ final class GitStatusViewController: NSViewController {
 
     func showLog(all: Bool) {
         let log = GitLogViewController(all: all, workbench: workbench)
+        log.hint = String(localized: "Return changes · d compare two · x reset · r rebase · q back", comment: "Git log: the keys shown under it")
         log.onClose = { [weak self] in self?.closeOverlay() }
         log.onRebase = { [weak self, weak log] commit in
             guard let self, let log, !log.all, let index = log.commits.firstIndex(of: commit) else { return Sounds.beep() }
@@ -446,7 +486,7 @@ final class GitStatusViewController: NSViewController {
     private var covered: [[NSView]] = []
 
     private func push(_ controller: NSViewController, focus: NSView, announcing heading: String) {
-        let beneath = overlays.last.map { [$0.view] } ?? [header, scrollView, messageLabel]
+        let beneath = overlays.last.map { [$0.view] } ?? [header, scrollView, footer]
         covered.append(beneath.filter { !$0.isHidden })
         covered.last?.forEach { $0.isHidden = true }
         addChild(controller)
@@ -470,7 +510,6 @@ final class GitStatusViewController: NSViewController {
         top.view.removeFromSuperview()
         top.removeFromParent()
         covered.popLast()?.forEach { $0.isHidden = false }
-        if overlays.isEmpty { messageLabel.isHidden = message == nil }
         let focus: NSView = (overlays.last as? GitLogViewController)?.table ?? (overlays.last as? GitDiffViewController)?.table
             ?? (overlays.last as? GitRebaseEditor)?.table ?? table
         view.window?.makeFirstResponder(focus)
@@ -819,12 +858,17 @@ final class GitStatusViewController: NSViewController {
 
     // MARK: - Feedback
 
-    func show(_ text: String, isError: Bool) {
+    /// `done` marks a command that finished; other messages are notes. Under a diff or log the message waits: it's
+    /// announced now and shown when they close.
+    func show(_ text: String, isError: Bool, done: Bool = false) {
         message = (text, isError)
         messageLabel.stringValue = text
         messageLabel.textColor = isError ? GitColors.deleted : .secondaryLabelColor
-        // Under a diff or log it waits; it's announced now and shown when they close.
-        messageLabel.isHidden = !overlays.isEmpty
+        let symbol = isError ? "exclamationmark.triangle.fill" : done ? "checkmark.circle" : "info.circle"
+        messageSymbol = symbol
+        messageIcon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        messageIcon.contentTintColor = isError ? GitColors.deleted : done ? GitColors.added : .secondaryLabelColor
+        messageRow.isHidden = false
         announce(text)
     }
 
@@ -856,6 +900,46 @@ extension GitStatusViewController: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { rows[row] != .clean }
+}
+
+// MARK: - Right-click menu
+
+extension GitStatusViewController: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        fill(menu, for: table.clickedRow)
+    }
+
+    /// The commands for a right click on `row`; a row outside the selection becomes the selection first, as in the
+    /// files. The same commands and titles as the key list.
+    @discardableResult
+    func contextMenu(for row: Int) -> NSMenu {
+        let menu = NSMenu()
+        fill(menu, for: row)
+        return menu
+    }
+
+    private func fill(_ menu: NSMenu, for row: Int) {
+        menu.removeAllItems()
+        menuActions = []
+        guard rows.indices.contains(row), rows[row] != .clean else { return }
+        if !table.selectedRowIndexes.contains(row) { table.selectRowIndexes([row], byExtendingSelection: false) }
+        let keys: [[String]] = [["s", "u", "k"], ["⇥", "↩"], ["c"]]
+        let items = helpItems
+        for group in keys {
+            if !menu.items.isEmpty { menu.addItem(.separator()) }
+            for item in items where group.contains(item.key) {
+                let entry = NSMenuItem(title: item.title, action: #selector(menuItemChosen(_:)), keyEquivalent: "")
+                entry.target = self
+                entry.tag = menuActions.count
+                menuActions.append(item.action)
+                menu.addItem(entry)
+            }
+        }
+    }
+
+    @objc private func menuItemChosen(_ sender: NSMenuItem) {
+        menuActions[safe: sender.tag]?()
+    }
 }
 
 /// The list: its keys go to the status view first.

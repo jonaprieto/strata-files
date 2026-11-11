@@ -22,6 +22,7 @@ final class GitDiffViewController: NSViewController {
     private(set) var loadTask: Task<Void, Never>?
     let table = KeyTable()
     private let headingLabel = NSTextField(labelWithString: "")
+    let hintLabel = NSTextField(labelWithString: String(localized: "Tab fold · Shift-Tab fold all · n p move · q back", comment: "Git diff: the keys shown under it"))
 
     init(kind: GitDiffKind, title: String, workbench: GitWorkbench) {
         self.kind = kind
@@ -52,7 +53,10 @@ final class GitDiffViewController: NSViewController {
         headingLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         headingLabel.stringValue = heading
         headingLabel.lineBreakMode = .byTruncatingMiddle
-        for subview in [headingLabel, scroll] as [NSView] {
+        hintLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hintLabel.textColor = .secondaryLabelColor
+        hintLabel.lineBreakMode = .byTruncatingTail
+        for subview in [headingLabel, scroll, hintLabel] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
@@ -63,7 +67,10 @@ final class GitDiffViewController: NSViewController {
             scroll.topAnchor.constraint(equalTo: headingLabel.bottomAnchor, constant: 8),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            hintLabel.topAnchor.constraint(equalTo: scroll.bottomAnchor, constant: 4),
+            hintLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+            hintLabel.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor, constant: -12),
+            hintLabel.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
         ])
         view = root
         loadTask = Task { [weak self, workbench, kind] in

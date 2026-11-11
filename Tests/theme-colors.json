@@ -102,6 +102,12 @@
     "reason": "A small status glyph uses a neutral halo and white details for contrast against semantic Git colors."
   },
   {
+    "file": "Sources/Strata/Git/GitStatusCell.swift",
+    "code": "layer?.backgroundColor = color",
+    "count": 1,
+    "reason": "Added and removed diff lines carry a faint semantic Git tint, resolved for the cell's appearance, as document content."
+  },
+  {
     "file": "Sources/Strata/Inspector/InspectorViewController.swift",
     "code": "richBackdrop.borderColor = .separatorColor",
     "count": 1,

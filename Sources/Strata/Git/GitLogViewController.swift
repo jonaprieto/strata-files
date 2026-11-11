@@ -21,6 +21,9 @@ final class GitLogViewController: NSViewController {
     private(set) var loadTask: Task<Void, Never>?
     let table = KeyTable()
     private let headingLabel = NSTextField(labelWithString: "")
+    /// The keys its owner handles, shown under the list; none in the history panel, where a click is enough.
+    var hint: String?
+    let hintLabel = NSTextField(labelWithString: "")
 
     init(all: Bool, workbench: GitWorkbench) {
         self.all = all
@@ -34,10 +37,12 @@ final class GitLogViewController: NSViewController {
 
     override func loadView() {
         let root = NSView()
-        for (identifier, width) in [("graph", 80.0), ("commit", 400.0)] {
+        // The commit column starts small and grows with the view, so in a narrow panel it ends at the panel's edge
+        // and long subjects end in an ellipsis.
+        for (identifier, width) in [("graph", Self.graphWidth(lanes: 1)), ("commit", 80.0)] {
             let column = NSTableColumn(identifier: .init(identifier))
             column.width = width
-            if identifier == "graph" { column.resizingMask = [] }
+            column.resizingMask = identifier == "graph" ? [] : .autoresizingMask
             table.addTableColumn(column)
         }
         table.headerView = nil
@@ -61,7 +66,12 @@ final class GitLogViewController: NSViewController {
         ThemeStyle.bind(scroll, to: .content)
         headingLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         headingLabel.stringValue = heading
-        for subview in [headingLabel, scroll] as [NSView] {
+        hintLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hintLabel.textColor = .secondaryLabelColor
+        hintLabel.lineBreakMode = .byTruncatingTail
+        hintLabel.stringValue = hint ?? ""
+        hintLabel.isHidden = hint == nil
+        for subview in [headingLabel, scroll, hintLabel] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
@@ -71,13 +81,23 @@ final class GitLogViewController: NSViewController {
             scroll.topAnchor.constraint(equalTo: headingLabel.bottomAnchor, constant: 8),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            hintLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+            hintLabel.trailingAnchor.constraint(lessThanOrEqualTo: root.trailingAnchor, constant: -12),
+        ])
+        NSLayoutConstraint.activate(hint == nil ? [scroll.bottomAnchor.constraint(equalTo: root.bottomAnchor)] : [
+            hintLabel.topAnchor.constraint(equalTo: scroll.bottomAnchor, constant: 4),
+            hintLabel.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -6),
         ])
         view = root
         loadMore()
     }
 
     func stop() { loadTask?.cancel() }
+
+    /// Room for `lanes` lanes and the dot's radius, so the commit text starts right after the graph.
+    static func graphWidth(lanes: Int) -> CGFloat {
+        min(GitGraphCell.x(max(lanes, 1) - 1) + GitGraphCell.laneWidth, 160)
+    }
 
     /// The next page, appended; the graph is laid out again over everything loaded so lanes stay continuous.
     func loadMore() {
@@ -95,6 +115,7 @@ final class GitLogViewController: NSViewController {
             self.hasMore = page.count == Self.pageSize
             self.commits += page
             self.graph = GitGraph.layout(self.commits)
+            self.table.tableColumns.first?.width = Self.graphWidth(lanes: self.graph.map(\.width).max() ?? 1)
             self.table.reloadData()
             if skip == 0, !self.commits.isEmpty { self.table.selectRowIndexes([0], byExtendingSelection: false) }
         }
@@ -154,7 +175,7 @@ final class GitLogViewController: NSViewController {
     /// What VoiceOver reads for a commit.
     static func spoken(_ commit: GitCommit) -> String {
         var parts = [commit.shortID, commit.subject, String(localized: "by \(commit.author)"),
-                     RelativeDateTimeFormatter().localizedString(for: commit.date, relativeTo: Date())]
+                     RelativeDateTimeFormatter.git.localizedString(for: commit.date, relativeTo: Date())]
         if !commit.refs.isEmpty { parts.append(commit.refs.joined(separator: ", ")) }
         if commit.isMerge { parts.append(String(localized: "merge", comment: "Accessibility: a merge commit")) }
         return parts.joined(separator: ", ")
@@ -183,11 +204,20 @@ extension GitLogViewController: NSTableViewDataSource, NSTableViewDelegate {
             text.append(NSAttributedString(string: "[\(ref)] ", attributes: [.foregroundColor: color, .font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)]))
         }
         text.append(NSAttributedString(string: commit.subject, attributes: [.foregroundColor: NSColor.labelColor, .font: NSFont.systemFont(ofSize: NSFont.systemFontSize)]))
-        let date = RelativeDateTimeFormatter().localizedString(for: commit.date, relativeTo: Date())
+        let date = RelativeDateTimeFormatter.git.localizedString(for: commit.date, relativeTo: Date())
         text.append(NSAttributedString(string: "  \(commit.author), \(date)", attributes: [.foregroundColor: NSColor.tertiaryLabelColor, .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]))
         cell.show(.init(text: text, accessibility: Self.spoken(commit), indent: 0))
         return cell
     }
+}
+
+extension RelativeDateTimeFormatter {
+    /// "now" and "yesterday" rather than "in 0 seconds" and "1 day ago".
+    static let git: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.dateTimeStyle = .named
+        return formatter
+    }()
 }
 
 /// The graph for one row: lanes passing by, lanes ending at the commit, lanes it continues into, and its dot.
