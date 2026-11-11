@@ -96,6 +96,10 @@ Terminal (⌃⌘T) still opens Ghostty, iTerm, Warp or Terminal.
 
 ## Feedback and accessibility
 
+In a repository the status bar under the files says where the branch is and what's changed, from the status
+already read: "22 items · main ↑1 · 2 staged · 3 modified · 1 untracked · 10 GB free", or "main · No changes". It
+follows the repository as it changes.
+
 Both toolbar buttons show when they're on: the branch turns the accent color while the status shows, the terminal
 fills while the drawer is open, and each tooltip says what a click does. They're in the default toolbar and can be
 removed or moved with Customize Toolbar.
