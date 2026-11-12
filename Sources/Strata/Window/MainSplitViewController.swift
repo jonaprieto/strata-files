@@ -69,7 +69,6 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         addSplitViewItem(sidebarItem)
         addSplitViewItem(contentItem)
         historyItem.minimumThickness = 220
-        historyItem.maximumThickness = 520
         historyItem.holdingPriority = .init(260)
         addSplitViewItem(inspectorItem)
     }
@@ -96,22 +95,25 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
         NSLayoutConstraint.activate(terminalPlacement)
     }
 
+    static let historyShare: CGFloat = 0.45
+
     /// The panel is in the split only while it shows: hidden, even a collapsed item keeps a divider, and the window's
     /// smallest size would no longer fit.
     var isHistoryShown: Bool { splitViewItems.contains(historyItem) }
 
-    /// `width`, in a pane's place: as wide as the pane was, past the panel's usual widest.
+    /// `width`, in a pane's place: as wide as the pane was. Otherwise the panel takes a share of the files' width,
+    /// enough to read its history beside them.
     func setHistoryShown(_ shown: Bool, width: CGFloat? = nil) {
         guard shown != isHistoryShown else { return }
         if shown {
-            historyItem.maximumThickness = width == nil ? 520 : NSSplitViewItem.unspecifiedDimension
             let index = splitViewItems.firstIndex(of: inspectorItem) ?? splitViewItems.count
             // The panel's frame isn't laid out yet once inserted; the files' right edge before it is where it ends.
-            let end = splitView.arrangedSubviews[safe: index - 1]?.frame.maxX ?? 0
+            let files = splitView.arrangedSubviews[safe: index - 1]?.frame ?? .zero
+            let width = width ?? (files.width * Self.historyShare).rounded()
             insertSplitViewItem(historyItem, at: index)
-            guard let width, index > 0 else { return }
+            guard index > 0 else { return }
             splitView.layoutSubtreeIfNeeded()
-            splitView.setPosition(end - width - splitView.dividerThickness, ofDividerAt: index - 1)
+            splitView.setPosition(files.maxX - width - splitView.dividerThickness, ofDividerAt: index - 1)
         } else {
             removeSplitViewItem(historyItem)
         }

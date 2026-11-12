@@ -159,7 +159,8 @@ import Testing
         withExtendedLifetime(environment) {}
     }
 
-    /// In the narrow panel a commit takes two lines, its subject alone on the first; the log in the status keeps one.
+    /// In the narrow panel a commit's subject sits alone on its first line, wrapping rather than cut short; the log in
+    /// the status keeps one line.
     @Test func thePanelsCommitsPutTheSubjectOnALineOfItsOwn() async throws {
         let repo = try await history()
         let environment = try IndependentEnvironment()
@@ -172,7 +173,7 @@ import Testing
         let lines = cell.textField?.stringValue.components(separatedBy: "\n") ?? []
         #expect(lines.first == "second")
         #expect(lines.count == 2 && lines[1].contains(log.commits[0].shortID))
-        #expect(cell.textField?.maximumNumberOfLines == 2)
+        #expect(cell.textField?.maximumNumberOfLines == 0)
         #expect(log.table.rowHeight >= 2 * 16)
 
         let status = GitLogViewController(all: false, workbench: GitWorkbench(repository: repo.repository, writer: environment.services.gitWriter))
@@ -182,6 +183,86 @@ import Testing
         #expect(single.textField?.maximumNumberOfLines == 1)
         #expect(!(single.textField?.stringValue.contains("\n") ?? true))
         withExtendedLifetime(environment) {}
+    }
+
+    /// Beside one pane the panel takes a share of the files' width, not its narrowest, so it doesn't get lost.
+    @Test func besideOnePaneThePanelTakesAShareOfTheFiles() async throws {
+        let repo = try await history()
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.url("sub"), environment)
+        defer { close(owner) }
+        owner.window?.setContentSize(NSSize(width: 1800, height: 600))
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        let files = owner.split.splitView.arrangedSubviews[1].frame.width
+
+        _ = try await showPanel(owner)
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        let panel = owner.split.history.view.frame.width
+        #expect(abs(panel - files * MainSplitViewController.historyShare) <= 2, "\(panel) of \(files)")
+        #expect(panel > 520, "Wider than the panel's old widest: \(panel)")
+        withExtendedLifetime(environment) {}
+    }
+
+    /// In a narrow panel a long subject, a long path and the line naming the commit shown wrap onto more lines, each
+    /// row as tall as its text; wide, a row is back to its usual height.
+    @Test func longTextWrapsInANarrowPanel() async throws {
+        let repo = try await history()
+        let subject = "A subject far longer than a narrow history panel can show on a single line"
+        let path = "docs/folder/with/a/rather/long/path/to/a/file with a long name.txt"
+        try repo.write(path, "x\n")
+        try await repo.git("add", "-A")
+        try await repo.git("commit", "-q", "-m", subject)
+        let environment = try IndependentEnvironment()
+        environment.services.git.isEnabled = true
+        let owner = await window(at: repo.root, environment)
+        defer { close(owner) }
+        owner.window?.setContentSize(NSSize(width: 1800, height: 800))
+        owner.split.splitView.layoutSubtreeIfNeeded()
+        let panel = try await showPanel(owner)
+        let log = try #require(panel.log)
+        #expect(log.commits.first?.subject == subject)
+        await panel.show(try #require(log.commits.first)).value
+        for _ in 0..<500 where panel.files.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
+        await panel.filesTask?.value
+        #expect(panel.files.map(\.path) == [path])
+
+        // The split decides the panel's width: move the divider before it.
+        func layout(width: CGFloat) throws {
+            let split = owner.split.splitView
+            let index = try #require(split.arrangedSubviews.firstIndex { panel.view.isDescendant(of: $0) })
+            let item = split.arrangedSubviews[index]
+            split.setPosition(item.frame.maxX - width - split.dividerThickness, ofDividerAt: index - 1)
+            split.layoutSubtreeIfNeeded()
+            split.layoutSubtreeIfNeeded()
+            #expect(abs(item.frame.width - width) <= 1, "\(item.frame.width)")
+        }
+        func fits(_ table: NSTableView) throws -> CGFloat {
+            let cell = try #require(table.view(atColumn: table.numberOfColumns - 1, row: 0, makeIfNecessary: true) as? NSTableCellView)
+            cell.frame = table.rect(ofRow: 0)
+            cell.layoutSubtreeIfNeeded()
+            let label = try #require(cell.textField)
+            #expect(label.maximumNumberOfLines == 0)
+            #expect(label.fittingSize.height <= table.rect(ofRow: 0).height, "The row shows all its lines")
+            return table.rect(ofRow: 0).height
+        }
+        try layout(width: 220)
+        let narrowCommit = try fits(log.table)
+        let narrowFile = try fits(panel.filesTable)
+        #expect(narrowCommit > log.table.rowHeight)
+        #expect(narrowFile > panel.filesTable.rowHeight)
+        let banner = try #require(allLabels(panel.view).first { $0.stringValue.contains(subject) })
+        #expect(banner.frame.height > 2 * (banner.font?.boundingRectForFont.height ?? 0), "\(banner.frame)")
+        #expect(banner.convert(banner.bounds, to: panel.view).maxX <= 220 - 9)
+
+        try layout(width: 1000)
+        #expect(try fits(log.table) < narrowCommit)
+        #expect(try fits(panel.filesTable) == panel.filesTable.rowHeight)
+        withExtendedLifetime(environment) {}
+    }
+
+    private func allLabels(_ view: NSView) -> [NSTextField] {
+        ((view as? NSTextField).map { [$0] } ?? []) + view.subviews.flatMap(allLabels)
     }
 
     /// With two panes the panel takes the other pane's place, as wide as it was; hiding the panel brings that pane back
