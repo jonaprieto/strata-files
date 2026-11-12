@@ -28,6 +28,34 @@ import Testing
         }
     }
 
+    /// The 16 ANSI colors programs pick from read on every theme's terminal background: at least 4.5:1 for colors, 3:1
+    /// for gray (bright black, used for faint text). Black on dark and white on light are backgrounds programs draw
+    /// on, so they're left out.
+    @Test func theTerminalsColorsReadOnEveryTheme() throws {
+        func luminance(_ color: NSColor) throws -> Double {
+            let rgb = try #require(color.usingColorSpace(.sRGB))
+            func linear(_ c: CGFloat) -> Double { Double(c) <= 0.04045 ? Double(c) / 12.92 : pow((Double(c) + 0.055) / 1.055, 2.4) }
+            return 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+        }
+        for dark in [true, false] {
+            let palette = TerminalPalette.colors(dark: dark)
+            #expect(palette.count == 16)
+            let appearance = try #require(NSAppearance(named: dark ? .darkAqua : .aqua))
+            for theme in ColorTheme.allCases {
+                var background = NSColor.textBackgroundColor
+                if theme != .system { background = theme.surface(.preview, dark: dark) }
+                var resolved: NSColor?
+                appearance.performAsCurrentDrawingAppearance { resolved = background.usingColorSpace(.sRGB) }
+                let back = try luminance(try #require(resolved))
+                for (index, color) in palette.enumerated() where !(dark ? [0] : [7, 15]).contains(index) {
+                    let front = try luminance(color)
+                    let ratio = (max(front, back) + 0.05) / (min(front, back) + 0.05)
+                    #expect(ratio >= (index == 8 || index == 0 ? 3 : 4.5), "\(dark ? "dark" : "light") \(theme) color \(index): \(ratio)")
+                }
+            }
+        }
+    }
+
     @Test func droppedPathsAreQuotedAndNeverEndInReturn() {
         let text = TerminalText.paths([URL(fileURLWithPath: "/tmp/a b"), URL(fileURLWithPath: "/tmp/it's"), URL(fileURLWithPath: "/tmp/$(rm -rf ~)")])
         #expect(text == "'/tmp/a b' '/tmp/it'\\''s' '/tmp/$(rm -rf ~)' ")
