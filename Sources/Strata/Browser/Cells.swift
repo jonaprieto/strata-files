@@ -1,6 +1,13 @@
 import AppKit
 
 /// Icon + file name, with fuzzy-match characters highlighted while filtering.
+/// Hidden, git-ignored and cut items' text: fainter than the rest, yet readable on every theme. Half the alpha of gray
+/// text was a fourth of white on a dark file list.
+enum DimmedText {
+    static let name = NSColor(name: nil) { $0.isDark ? NSColor(white: 1, alpha: 0.6) : NSColor(white: 0, alpha: 0.55) }
+    static let detail = NSColor(name: nil) { $0.isDark ? NSColor(white: 1, alpha: 0.54) : NSColor(white: 0, alpha: 0.45) }
+}
+
 final class NameCellView: NSTableCellView, ColorThemeUpdating {
     /// The icon's side, in points.
     static let iconSide: CGFloat = 18
@@ -133,7 +140,7 @@ final class NameCellView: NSTableCellView, ColorThemeUpdating {
     private func render() {
         let selected = backgroundStyle == .emphasized
         var color: NSColor = selected ? ThemeStyle.selectedText : .labelColor
-        if dimmed { color = color.withAlphaComponent(0.5) }
+        if dimmed { color = selected ? color.withAlphaComponent(0.5) : DimmedText.name }
         let font = typography.font
         // The field's own font too: renaming edits at the size the name is shown.
         label.font = font
@@ -202,7 +209,7 @@ final class TextCellView: NSTableCellView, ColorThemeUpdating {
     private func updateColor() {
         let selected = backgroundStyle == .emphasized
         let base: NSColor = selected ? ThemeStyle.selectedText.withAlphaComponent(0.85) : .secondaryLabelColor
-        label.textColor = dimmed ? base.withAlphaComponent(0.5) : base
+        label.textColor = dimmed ? (selected ? base.withAlphaComponent(0.5) : DimmedText.detail) : base
     }
 
     func updateColorTheme() { updateColor() }

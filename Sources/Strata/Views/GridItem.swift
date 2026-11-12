@@ -212,8 +212,10 @@ final class GridItemView: NSView, ColorThemeUpdating {
     // MARK: Drawing
 
     private var textColor: NSColor {
-        let base: NSColor = state.selected && state.emphasized ? ThemeStyle.selectedText : .labelColor
-        return state.dimmed ? base.withAlphaComponent(0.5) : base
+        let selected = state.selected && state.emphasized
+        let base: NSColor = selected ? ThemeStyle.selectedText : .labelColor
+        guard state.dimmed else { return base }
+        return selected ? base.withAlphaComponent(0.5) : DimmedText.name
     }
 
     /// Names like "onboarding-1.png" have no line-break opportunity, so the typesetter splits mid-word
