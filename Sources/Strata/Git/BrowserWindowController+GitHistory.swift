@@ -32,8 +32,10 @@ extension BrowserWindowController {
         guard split.isHistoryShown else { return }
         let history = split.history
         history.paneFolder = { [weak self] in self?.browser.directory }
-        history.navigate = { [weak self] folder, item in self?.navigate(to: folder, select: item) }
-        history.showDiff = { [weak self] repository, kind, title in self?.browser.showGitDiff(kind, title: title, in: repository) }
+        history.navigate = { [weak self] folder in self?.navigate(to: folder) }
+        history.showDiff = { [weak self] repository, kind, title, focus in
+            self?.browser.showGitDiff(kind, title: title, focusing: focus, in: repository)
+        }
         history.follow()
     }
 }

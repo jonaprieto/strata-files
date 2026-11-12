@@ -6,11 +6,11 @@ import StrataDev
 /// nearest one that existed then; Working Files brings the pane back. The repository itself is never changed.
 final class GitHistoryPanelController: NSViewController {
     private let services: BrowserServices
-    /// The active pane's folder, and how to show another in it (selecting an item there).
+    /// The active pane's folder, and how to show another in it.
     var paneFolder: () -> URL? = { nil }
-    var navigate: (URL, URL?) -> Void = { _, _ in }
-    /// Shows a diff in the pane, which has room for it.
-    var showDiff: (GitRepository, GitDiffKind, String) -> Void = { _, _, _ in }
+    var navigate: (URL) -> Void = { _ in }
+    /// Shows a diff in the pane, which has room for it, opened on a file when one is given.
+    var showDiff: (GitRepository, GitDiffKind, String, String?) -> Void = { _, _, _, _ in }
     /// The commit a key moved to, shown once the keys rest.
     private(set) var pendingMove: Task<Void, Never>?
 
@@ -203,8 +203,8 @@ final class GitHistoryPanelController: NSViewController {
         log.onSelectionChange = { [weak self] commits in self?.listFiles(of: commits.count == 1 ? commits.first : nil) }
         log.onShowDiff = { [weak self] kind, title in
             guard let self, let repository = self.repository else { return }
-            self.pendingMove?.cancel()
-            self.showDiff(repository, kind, title)
+            self.stopShowing()
+            self.showDiff(repository, kind, title, nil)
         }
         log.onClose = {}
         addChild(log)
@@ -230,10 +230,10 @@ final class GitHistoryPanelController: NSViewController {
 
     // MARK: - Showing a commit
 
-    /// Shows `commit`'s files in the pane at the folder it shows now (or the nearest that existed then), or at the
-    /// folder of `path` with it selected. A later choice wins: an earlier one still being made is dropped.
+    /// Shows `commit`'s files in the pane at the folder it shows now (or the nearest that existed then). A later
+    /// choice wins: an earlier one still being made is dropped.
     @discardableResult
-    func show(_ commit: GitCommit, selecting path: String? = nil) -> Task<Void, Never> {
+    func show(_ commit: GitCommit) -> Task<Void, Never> {
         guard let repository else { return Task {} }
         generation += 1
         let mine = generation
@@ -244,8 +244,7 @@ final class GitHistoryPanelController: NSViewController {
                 self?.statusLabel.stringValue = String(localized: "Git couldn’t show \(commit.shortID).")
                 return Sounds.beep()
             }
-            let item = path.map { top.appending(path: $0) }
-            let wanted = item?.deletingLastPathComponent() ?? folder.map { folder in
+            let wanted = folder.map { folder in
                 GitSnapshotCache.commit(containing: folder).map { GitSnapshots.path(of: folder, from: $0.top, to: top) }
                     ?? GitSnapshots.path(of: folder, from: repository.root, to: top)
             } ?? top
@@ -253,7 +252,7 @@ final class GitHistoryPanelController: NSViewController {
             guard let self, mine == self.generation else { return }
             self.owners[top.path] = repository
             self.viewing = commit.id
-            self.navigate(target, item)
+            self.navigate(target)
             self.show(repository)
             self.announce(String(localized: "Showing the files of commit \(commit.shortID), read only"))
         }
@@ -273,10 +272,16 @@ final class GitHistoryPanelController: NSViewController {
             let target = await Self.nearestFolder(wanted, within: repository.root)
             guard let self, mine == self.generation else { return }
             self.viewing = nil
-            self.navigate(target, nil)
+            self.navigate(target)
             self.show(repository)
             self.announce(String(localized: "Showing the working files"))
         }
+    }
+
+    /// A diff opening in the pane is a newer choice: a commit's files still on their way there would close it.
+    private func stopShowing() {
+        pendingMove?.cancel()
+        generation += 1
     }
 
     /// Holding a key passes many commits; only the one it stops at is checked out.
@@ -319,17 +324,11 @@ final class GitHistoryPanelController: NSViewController {
         open(fileAt: filesTable.clickedRow)
     }
 
-    /// Shows the file in the pane, among its commit's files; a file the commit deleted isn't there, so the commit's
-    /// changes show instead.
-    @discardableResult
-    func open(fileAt row: Int) -> Task<Void, Never>? {
-        guard let commit = filesCommit, let file = files[safe: row], let repository else { return nil }
-        pendingMove?.cancel()
-        if file.isDeleted {
-            showDiff(repository, .commit(commit.id), String(localized: "Commit \(commit.shortID): \(commit.subject)"))
-            return nil
-        }
-        return show(commit, selecting: file.path)
+    /// The commit's changes in the pane, opened on the file: its changes shown and selected, the others folded.
+    func open(fileAt row: Int) {
+        guard let commit = filesCommit, let file = files[safe: row], let repository else { return }
+        stopShowing()
+        showDiff(repository, .commit(commit.id), String(localized: "Commit \(commit.shortID): \(commit.subject)"), file.path)
     }
 
     /// `url`, or the nearest folder above it that exists, never above `top`.
