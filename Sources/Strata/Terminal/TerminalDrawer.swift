@@ -272,6 +272,27 @@ final class DroppingTerminalView: LocalProcessTerminalView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         registerForDraggedTypes([.fileURL])
+        applyColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyColors()
+    }
+
+    /// SwiftTerm keeps its text and background colors as fixed values, read once under whatever appearance was current
+    /// then: in a dark window it showed black text. They're read again for this view's appearance whenever it changes,
+    /// the background from the theme's file list.
+    private func applyColors() {
+        var colors: (text: NSColor, background: NSColor)?
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            if let text = NSColor.textColor.usingColorSpace(.sRGB), let background = ThemeStyle.surface(.content).usingColorSpace(.sRGB) {
+                colors = (text, background)
+            }
+        }
+        guard let colors else { return }
+        nativeForegroundColor = colors.text
+        nativeBackgroundColor = colors.background
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
