@@ -90,6 +90,22 @@ final class TerminalDrawerController: NSViewController {
         self.preferences = preferences
         edge = preferences.terminalAtRight ? .right : .bottom
         super.init(nibName: nil, bundle: nil)
+        preferences.notifications.addObserver(self, selector: #selector(settingsChanged), name: .terminalChanged, object: preferences)
+    }
+
+    /// Settings ▸ Terminal changed, or another window's drawer moved: this one follows.
+    @objc private func settingsChanged() {
+        _ = view
+        applyFont()
+        let wanted: Edge = preferences.terminalAtRight ? .right : .bottom
+        guard wanted != edge else { return }
+        edge = wanted
+        layOutForEdge()
+        onEdgeChange()
+    }
+
+    private func applyFont() {
+        terminal.font = TerminalFonts.font(family: preferences.terminalFontFamily, size: preferences.terminalFontSize)
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
@@ -143,6 +159,7 @@ final class TerminalDrawerController: NSViewController {
         ThemeStyle.bind(root, to: .content)
         view = root
         layOutForEdge()
+        applyFont()
     }
 
     /// The drag handle runs along the edge facing the panes: the top under them, the left side at their right.
@@ -186,11 +203,8 @@ final class TerminalDrawerController: NSViewController {
 
     /// Under the panes or at their right, whichever it isn't; new windows open it there too.
     @objc func moveToOtherEdge() {
-        _ = view
-        edge = edge == .bottom ? .right : .bottom
-        preferences.terminalAtRight = edge == .right
-        layOutForEdge()
-        onEdgeChange()
+        // Saved, every drawer follows (this one included) through `settingsChanged`.
+        preferences.terminalAtRight = edge == .bottom
     }
 
     func toggle() { isShown ? hide() : show() }
@@ -264,6 +278,23 @@ final class TerminalDrawerController: NSViewController {
             guard let last else { return }
             onDrag(vertical ? point.y - last.y : last.x - point.x)
         }
+    }
+}
+
+/// The drawer's fonts: installed families whose letters are all one width, as a terminal needs.
+enum TerminalFonts {
+    static func families() -> [String] {
+        NSFontManager.shared.availableFontFamilies.filter {
+            NSFontManager.shared.font(withFamily: $0, traits: [], weight: 5, size: 12)?.isFixedPitch == true
+        }
+    }
+
+    /// `family` at `size`; the system's monospaced font when there's no such family or its letters vary in width.
+    static func font(family: String?, size: CGFloat) -> NSFont {
+        if let family, let font = NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: size), font.isFixedPitch {
+            return font
+        }
+        return .monospacedSystemFont(ofSize: size, weight: .regular)
     }
 }
 

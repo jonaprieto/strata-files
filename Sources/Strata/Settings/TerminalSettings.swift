@@ -10,6 +10,10 @@ struct TerminalSettings: View {
     @State private var choosing = false
     @State private var pendingChoice: URL?
     @State private var invalidChoice = false
+    @State private var fontFamily = Prefs.shared.terminalFontFamily ?? ""
+    @State private var fontSize = Prefs.shared.terminalFontSize
+    @State private var atRight = Prefs.shared.terminalAtRight
+    @State private var families: [String] = []
 
     var body: some View {
         Form {
@@ -34,6 +38,26 @@ struct TerminalSettings: View {
             Text("Automatic picks the first installed of Ghostty, iTerm, Warp and Terminal. ⌃⌘T opens the current folder.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            Section("Terminal drawer (⌃⌘`)") {
+                Picker("Font", selection: Binding(get: { fontFamily }, set: {
+                    fontFamily = $0
+                    Prefs.shared.terminalFontFamily = $0.isEmpty ? nil : $0
+                })) {
+                    Text("System monospaced").tag("")
+                    ForEach(families, id: \.self) { Text(verbatim: $0).tag($0) }
+                }
+                Stepper(value: Binding(get: { fontSize }, set: { fontSize = $0; Prefs.shared.terminalFontSize = $0 }), in: 9...24) {
+                    Text("Size: \(Int(fontSize)) points")
+                }
+                Picker("Place", selection: Binding(get: { atRight }, set: { atRight = $0; Prefs.shared.terminalAtRight = $0 })) {
+                    Text("Under the panes").tag(false)
+                    Text("Beside the panes").tag(true)
+                }
+            }
+        }
+        .onAppear {
+            families = TerminalFonts.families()
+            atRight = Prefs.shared.terminalAtRight
         }
         .formStyle(.grouped)
         .modifier(ThemedFormBackground())
