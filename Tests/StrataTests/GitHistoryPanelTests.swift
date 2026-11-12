@@ -247,7 +247,7 @@ import Testing
     }
 
     /// Under the commits, the files the selected one changed, with how; moving to another commit lists its files.
-    /// Clicking one shows it in the pane, in that commit's files; a deleted one shows the commit's changes instead.
+    /// Clicking one shows the commit's changes in the pane, opened on that file.
     @Test func theSelectedCommitsFilesAreListedAndOpenInThePane() async throws {
         let repo = try await history()
         let environment = try IndependentEnvironment()
@@ -266,18 +266,24 @@ import Testing
         #expect(panel.files.map(\.path) == ["a", "sub/old"])
         await panel.pendingMove?.value
 
-        // The newest commit's added file, shown in the pane in that commit's files.
+        // A file opens the commit's changes in the pane on that file, the others folded; a deleted one too. Opened while
+        // the commit's files are still on their way to the pane, the diff stays.
         #expect(log.handleKey("p"))
         await panel.filesTask?.value
-        await panel.open(fileAt: 1)?.value
-        await owner.browser.directoryReads.task?.value
-        #expect(panel.viewing == log.commits[0].id)
-        #expect(owner.browser.selectedURLs.map(\.lastPathComponent) == ["new"])
-        #expect(owner.browser.directory.map { GitSnapshotCache.commit(containing: $0)?.commit } == log.commits[0].id)
-
-        // The deleted file isn't in the commit's files: its changes show instead.
-        _ = panel.open(fileAt: 2)
-        #expect(owner.browser.gitStatus?.diffView?.kind == .commit(log.commits[0].id))
+        await panel.show(log.commits[1]).value
+        _ = panel.show(log.commits[0])
+        for (row, path) in [(1, "sub/new"), (2, "sub/old")] {
+            panel.open(fileAt: row)
+            let diff = try #require(owner.browser.gitStatus?.diffView)
+            await diff.loadTask?.value
+            #expect(diff.kind == .commit(log.commits[0].id))
+            let index = try #require(diff.files.firstIndex { $0.path == path })
+            #expect(diff.folded == Set(diff.files.indices).subtracting([index]))
+            #expect(diff.table.selectedRowIndexes.map { diff.rows[$0] } == [.file(index)])
+            await owner.browser.directoryReads.task?.value
+            #expect(owner.browser.gitStatus?.diffView === diff)
+            #expect(diff.handleKey("q") && owner.browser.gitStatus == nil)
+        }
         withExtendedLifetime(environment) {}
     }
 

@@ -16,6 +16,8 @@ final class GitDiffViewController: NSViewController {
     let heading: String
     private let workbench: GitWorkbench
     var onClose: () -> Void = {}
+    /// The file to open on, set before showing; the others start folded.
+    var focus: String?
     private(set) var files: [GitFileDiff] = []
     private(set) var folded: Set<Int> = []
     private(set) var rows: [Row] = []
@@ -81,7 +83,13 @@ final class GitDiffViewController: NSViewController {
             self.details = description
             self.files = files ?? []
             if files == nil { self.headingLabel.stringValue = String(localized: "\(self.heading): git couldn’t show this diff.") }
+            let focused = self.focus.flatMap { focus in self.files.firstIndex { $0.newPath == focus || $0.oldPath == focus } }
+            if let focused { self.folded = Set(self.files.indices).subtracting([focused]) }
             self.rebuild()
+            if let focused, let row = self.rows.firstIndex(of: .file(focused)) {
+                self.table.selectRowIndexes([row], byExtendingSelection: false)
+                self.table.scrollRowToVisible(row)
+            }
         }
     }
 

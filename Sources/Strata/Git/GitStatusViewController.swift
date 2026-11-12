@@ -437,8 +437,8 @@ final class GitStatusViewController: NSViewController {
     var diffView: GitDiffViewController? { overlays.last as? GitDiffViewController }
     var logView: GitLogViewController? { overlays.last as? GitLogViewController }
 
-    /// A whole diff over the status list (or over the log it came from).
-    func showDiff(_ kind: GitDiffKind, title: String? = nil) {
+    /// A whole diff over the status list (or over the log it came from), opened on `focus` when given.
+    func showDiff(_ kind: GitDiffKind, title: String? = nil, focusing focus: String? = nil) {
         let heading = title ?? {
             switch kind {
             case .unstaged: String(localized: "Unstaged changes")
@@ -449,6 +449,7 @@ final class GitStatusViewController: NSViewController {
             }
         }()
         let diff = GitDiffViewController(kind: kind, title: heading, workbench: workbench)
+        diff.focus = focus
         diff.onClose = { [weak self] in self?.closeOverlay() }
         push(diff, focus: diff.table, announcing: heading)
     }
