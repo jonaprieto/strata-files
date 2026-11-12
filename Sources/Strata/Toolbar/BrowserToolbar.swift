@@ -4,12 +4,13 @@ import AppKit
 final class BrowserToolbar {
     static let defaults: [NSToolbarItem.Identifier] = [
         .toggleSidebar, .sidebarMode, .sidebarTrackingSeparator, .back, .forward, .flexibleSpace, .pathBar,
-        .flexibleSpace, .viewMode, .dualPane, identifier(.toggleGitStatus), identifier(.toggleGitHistory), identifier(.toggleTerminalDrawer), .share, .search,
+        .flexibleSpace, .viewMode, .dualPane, identifier(.toggleGitStatus), identifier(.toggleGitHistory), identifier(.toggleTerminalDrawer), .share, .search, identifier(.showShortcuts),
         .transfers, .inspectorTrackingSeparator, .toggleInspector,
     ]
     static let commands: [StrataCommand] = [
         .newFolder, .newFile, .moveToTrash, .copyToOtherPane, .moveToOtherPane, .compareWithOtherPane, .connectToServer,
         .openInTerminal, .toggleQuickLook, .reloadFolder, .showCommandPalette, .toggleGitStatus, .toggleTerminalDrawer, .toggleGitHistory,
+        .showShortcuts,
     ]
     static func identifier(_ command: StrataCommand) -> NSToolbarItem.Identifier { .init("command." + command.id) }
     /// The label under a toolbar icon; the customization palette and the tooltip keep the full menu title.
@@ -22,6 +23,7 @@ final class BrowserToolbar {
         case StrataCommand.toggleGitStatus.id: String(localized: "Git")
         case StrataCommand.toggleTerminalDrawer.id: String(localized: "Terminal")
         case StrataCommand.toggleGitHistory.id: String(localized: "History")
+        case StrataCommand.showShortcuts.id: String(localized: "Keys", comment: "Toolbar button label: the keyboard shortcuts")
         default: command.title
         }
     }

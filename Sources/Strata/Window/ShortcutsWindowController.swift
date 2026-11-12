@@ -4,12 +4,14 @@ import AppKit
 final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate {
     static let shared = ShortcutsWindowController()
 
-    private struct Shortcut {
+    struct Shortcut {
         let keys: [String]
         let action: String.LocalizationValue
     }
 
-    private static let sections: [(title: String, items: [Shortcut])] = [
+    static let diredTitle = String(localized: "Dired Keys (Settings ▸ General)", comment: "Keyboard shortcuts section: plain letters with Dired keys on")
+
+    static let sections: [(title: String, items: [Shortcut])] = [
         (String(localized: "Go", comment: "Keyboard shortcuts section: getting around"), [
             Shortcut(keys: ["⌘", "K"], action: "Command palette: jump anywhere, run any command"),
             Shortcut(keys: ["⌘", "L"], action: "Type a path (Tab completes)"),
@@ -95,6 +97,36 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
             Shortcut(keys: ["⌘", ","], action: "Settings"),
             Shortcut(keys: ["⌘", "/"], action: "This list"),
         ]),
+        (diredTitle, [
+            Shortcut(keys: ["n", "p"], action: "Down, up (also j, k)"),
+            Shortcut(keys: ["h", "l"], action: "Enclosing folder, open (in Columns and Icons: left, right)"),
+            Shortcut(keys: ["f"], action: "Open"),
+            Shortcut(keys: ["^"], action: "Enclosing folder"),
+            Shortcut(keys: ["/"], action: "Filter by typing"),
+            Shortcut(keys: ["g"], action: "Reload"),
+            Shortcut(keys: ["R"], action: "Rename"),
+            Shortcut(keys: ["+"], action: "New folder"),
+            Shortcut(keys: ["C"], action: "Copy to the other pane"),
+            Shortcut(keys: ["D"], action: "Move to Trash"),
+            Shortcut(keys: ["w", "W"], action: "Copy name, relative path"),
+        ]),
+        (String(localized: "Git and Terminal", comment: "Keyboard shortcuts section"), [
+            Shortcut(keys: ["⌃", "⌘", "G"], action: "Git status of this folder’s repository"),
+            Shortcut(keys: ["s", "u"], action: "Stage, unstage (S, U: everything)"),
+            Shortcut(keys: ["k"], action: "Discard"),
+            Shortcut(keys: ["⇥"], action: "Show or hide a file’s changes"),
+            Shortcut(keys: ["c"], action: "Commit, amend, extend or reword"),
+            Shortcut(keys: ["d", "l"], action: "Diff, log"),
+            Shortcut(keys: ["b"], action: "Branches"),
+            Shortcut(keys: ["f", "F", "P"], action: "Fetch, pull, push"),
+            Shortcut(keys: ["z", "r"], action: "Stash, rebase"),
+            Shortcut(keys: ["?"], action: "All of the status’s keys"),
+            Shortcut(keys: ["q"], action: "Back"),
+            Shortcut(keys: ["⌥", "⌘", "G"], action: "Git history beside the files"),
+            Shortcut(keys: ["n", "p"], action: "In the history: next, previous commit; the pane shows its files (also j, k, arrows)"),
+            Shortcut(keys: ["↩"], action: "In the history: the commit’s changes (d: two commits compared)"),
+            Shortcut(keys: ["⌃", "⌘", "`"], action: "Terminal under the panes"),
+        ]),
     ]
 
     private let search = NSSearchField()
@@ -172,6 +204,12 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
         return modifiers.map(String.init) + [String(current.dropFirst(modifiers.count))]
     }
 
+    /// The actions shown for `filter`, in order.
+    func shownActions(matching filter: String) -> [String] {
+        rebuild(filter: filter)
+        return content.arrangedSubviews.compactMap { ($0 as? ShortcutRow)?.action }
+    }
+
     func show() {
         if window?.isVisible != true { window?.center() }
         showWindow(nil)
@@ -215,7 +253,10 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
 
 /// "Action ………… ⌘ K" with each key drawn as a keycap.
 private final class ShortcutRow: NSView {
+    let action: String
+
     init(keys: [String], action: String) {
+        self.action = action
         super.init(frame: .zero)
         let label = NSTextField(labelWithString: action)
         label.font = .systemFont(ofSize: 13)

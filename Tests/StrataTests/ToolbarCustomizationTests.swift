@@ -71,7 +71,7 @@ struct ToolbarCustomizationTests {
         let toolbar = try #require(first.window?.toolbar)
         #expect(toolbar.allowsUserCustomization && !toolbar.autosavesConfiguration)
         #expect(first.toolbarDefaultItemIdentifiers(toolbar) == BrowserToolbar.defaults)
-        #expect(BrowserToolbar.defaults.count == 18)
+        #expect(BrowserToolbar.defaults.count == 19)
         let reload = BrowserToolbar.identifier(.reloadFolder)
         #expect(!BrowserToolbar.defaults.contains(reload))
         #expect(BrowserToolbar.allowed.filter { $0 == reload }.count == 1)
