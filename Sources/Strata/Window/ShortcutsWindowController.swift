@@ -210,6 +210,17 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
         return content.arrangedSubviews.compactMap { ($0 as? ShortcutRow)?.action }
     }
 
+    /// Those whose shortcut can be changed from their row.
+    func editableActions(matching filter: String) -> [String] {
+        rebuild(filter: filter)
+        return content.arrangedSubviews.compactMap { $0 as? ShortcutRow }.filter(\.isEditable).map(\.action)
+    }
+
+    /// The menu command a list row's built-in keys belong to.
+    private static func command(_ keys: [String]) -> ShortcutStore.Command? {
+        ShortcutStore.shared.command(builtIn: keys.joined().replacingOccurrences(of: "−", with: "-"))
+    }
+
     func show() {
         if window?.isVisible != true { window?.center() }
         showWindow(nil)
@@ -238,7 +249,7 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
                 content.setCustomSpacing(22, after: previous)
             }
             for item in items {
-                let row = ShortcutRow(keys: Self.liveKeys(item.keys), action: item.action)
+                let row = ShortcutRow(keys: Self.liveKeys(item.keys), action: item.action, command: Self.command(item.keys))
                 content.addArrangedSubview(row)
                 row.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -44).isActive = true
             }
@@ -254,16 +265,25 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
 /// "Action ………… ⌘ K" with each key drawn as a keycap.
 private final class ShortcutRow: NSView {
     let action: String
+    /// A menu command's row: its keys are a recorder, as in Settings ▸ Shortcuts, so a click changes them here.
+    let isEditable: Bool
 
-    init(keys: [String], action: String) {
+    init(keys: [String], action: String, command: ShortcutStore.Command? = nil) {
         self.action = action
+        isEditable = command != nil
         super.init(frame: .zero)
         let label = NSTextField(labelWithString: action)
         label.font = .systemFont(ofSize: 13)
         label.textColor = .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let caps = NSStackView(views: keys.map(Keycap.init))
+        let caps = NSStackView(views: command.map { command in
+            let recorder = RecorderButton(id: command.id, title: command.title)
+            recorder.toolTip = String(localized: "Click, then type the new shortcut", comment: "Help tag: change a shortcut from the shortcuts list")
+            // As wide as in Settings ▸ Shortcuts, so the column of keys lines up.
+            recorder.widthAnchor.constraint(equalToConstant: 120).isActive = true
+            return [recorder]
+        } ?? keys.map(Keycap.init))
         caps.spacing = 3
         caps.setContentCompressionResistancePriority(.required, for: .horizontal)
         for view in [label, caps] {
