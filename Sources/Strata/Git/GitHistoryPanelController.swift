@@ -50,9 +50,7 @@ final class GitHistoryPanelController: NSViewController {
         titleLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         statusLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         statusLabel.textColor = .secondaryLabelColor
-        statusLabel.lineBreakMode = .byTruncatingTail
         bannerLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
-        bannerLabel.lineBreakMode = .byTruncatingTail
         workingFilesButton.target = self
         workingFilesButton.action = #selector(workingFilesClicked)
         workingFilesButton.controlSize = .small
@@ -66,9 +64,15 @@ final class GitHistoryPanelController: NSViewController {
         banner.isHidden = true
         banner.setAccessibilityElement(true)
         banner.setAccessibilityRole(.group)
-        // Longer than the panel, a line ends in an ellipsis; holding its full width, it pushed the header past the edge.
+        // Longer than the panel, a line wraps (`viewDidLayout` gives it the width); holding its full width, it pushed
+        // the header past the edge.
+        titleLabel.lineBreakMode = .byTruncatingTail
+        for label in [statusLabel, bannerLabel, filesHeading] {
+            label.lineBreakMode = .byWordWrapping
+            label.maximumNumberOfLines = 0
+            label.cell?.wraps = true
+        }
         for label in [titleLabel, statusLabel, bannerLabel] {
-            label.lineBreakMode = .byTruncatingTail
             label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
         emptyMessage.textColor = .secondaryLabelColor
@@ -112,12 +116,28 @@ final class GitHistoryPanelController: NSViewController {
         view = root
     }
 
+    /// A wrapping label is as tall as its text at a width it's told: the panel's, inside its margins.
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        let width = max(view.bounds.width - 24, 1)
+        let widths = [(statusLabel, width), (filesHeading, width),
+                      (bannerLabel, max(width - workingFilesButton.fittingSize.width - banner.spacing, 1))]
+        for (label, width) in widths where label.preferredMaxLayoutWidth != width {
+            label.preferredMaxLayoutWidth = width
+            view.needsLayout = true
+        }
+    }
+
     private func makeFilesView() -> NSView {
         filesHeading.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
         filesHeading.textColor = .secondaryLabelColor
-        filesHeading.lineBreakMode = .byTruncatingTail
         filesHeading.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        filesTable.addTableColumn(NSTableColumn(identifier: .init("file")))
+        // The column ends at the panel's edge, so a long path wraps there.
+        let column = NSTableColumn(identifier: .init("file"))
+        column.width = 80
+        column.resizingMask = .autoresizingMask
+        filesTable.addTableColumn(column)
+        filesTable.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         filesTable.headerView = nil
         filesTable.rowSizeStyle = .custom
         filesTable.rowHeight = 22
@@ -365,11 +385,25 @@ extension GitHistoryPanelController: NSTableViewDataSource, NSTableViewDelegate 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard let file = files[safe: row] else { return nil }
         let cell = tableView.makeView(withIdentifier: GitStatusCell.identifier, owner: nil) as? GitStatusCell ?? GitStatusCell()
+        cell.show(content(file))
+        return cell
+    }
+
+    private func content(_ file: GitFileDiff) -> GitStatusCell.Content {
         var content = GitStatusCell.Content.file(file.path, diff: file, section: .staged, expanded: nil)
         // No disclosure here: the letter lines up near the heading's margin.
         content.indent = 0
-        cell.show(content)
-        return cell
+        content.lines = 0
+        return content
+    }
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        guard let file = files[safe: row], let column = tableView.tableColumns.first else { return tableView.rowHeight }
+        return max(tableView.rowHeight, GitStatusCell.height(of: content(file), width: column.width))
+    }
+
+    func tableViewColumnDidResize(_ notification: Notification) {
+        filesTable.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<files.count))
     }
 
     /// Return opens the selected file, as a click does.

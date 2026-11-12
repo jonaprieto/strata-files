@@ -11,7 +11,7 @@ final class GitStatusCell: NSTableCellView {
         var indent: CGFloat
         /// A faint fill across the row, for added and removed lines.
         var background: NSColor? = nil
-        /// Lines shown; each line still ends in an ellipsis rather than wrapping.
+        /// Lines shown, each ending in an ellipsis; 0 wraps the text over as many lines as it needs (`height(of:width:)`).
         var lines = 1
     }
 
@@ -40,21 +40,46 @@ final class GitStatusCell: NSTableCellView {
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
     func show(_ content: Content) {
-        // An attributed string's own paragraph style wins over the label's line break mode, and its default wraps:
-        // in a narrow panel a row would run into the next one.
-        let text = NSMutableAttributedString(attributedString: content.text)
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineBreakMode = .byTruncatingTail
-        text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
-        self.text = text
+        text = Self.styled(content)
         showText()
         // Set every time: a reused cell may come from a row with another count.
         label.maximumNumberOfLines = content.lines
+        label.cell?.wraps = content.lines == 0
         leading.constant = 8 + content.indent
         setAccessibilityLabel(content.accessibility)
         label.setAccessibilityLabel(content.accessibility)
         background = content.background
         applyBackground()
+    }
+
+    // A wrapping label is as tall as its text at the width it has, so it needs that width before layout.
+    override func layout() {
+        if label.maximumNumberOfLines == 0 { label.preferredMaxLayoutWidth = max(bounds.width - leading.constant - 8, 1) }
+        super.layout()
+    }
+
+    /// The row height `content` needs, wrapped, in a column `width` wide: measured by a label's own cell, so the
+    /// last line is never clipped.
+    static func height(of content: Content, width: CGFloat) -> CGFloat {
+        measure.attributedStringValue = styled(content)
+        let bounds = NSRect(x: 0, y: 0, width: max(width - 16 - content.indent, 1), height: .greatestFiniteMagnitude)
+        return ceil(measure.cellSize(forBounds: bounds).height) + 6
+    }
+
+    private static let measure: NSTextFieldCell = {
+        let cell = NSTextField(wrappingLabelWithString: "").cell as! NSTextFieldCell
+        cell.wraps = true
+        return cell
+    }()
+
+    /// An attributed string's own paragraph style wins over the label's line break mode, and its default wraps: a row
+    /// that doesn't wrap would run into the next one in a narrow panel.
+    private static func styled(_ content: Content) -> NSAttributedString {
+        let text = NSMutableAttributedString(attributedString: content.text)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = content.lines == 0 ? .byWordWrapping : .byTruncatingTail
+        text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
+        return text
     }
 
     /// On the selection's accent color, gray, green or blue text doesn't read: the whole row takes the selection's text

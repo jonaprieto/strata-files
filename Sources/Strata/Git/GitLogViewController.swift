@@ -17,7 +17,7 @@ final class GitLogViewController: NSViewController {
     var onMove: (GitCommit) -> Void = { _ in }
     /// The commits selected now, however the selection changed.
     var onSelectionChange: ([GitCommit]) -> Void = { _ in }
-    /// Two lines a commit, the subject alone on the first, for a narrow panel.
+    /// The subject alone on its first line, for a narrow panel, wrapping onto more lines rather than cut short.
     var stacked = false
     /// Rebase from the selected commit (it and every newer one).
     var onRebase: (GitCommit) -> Void = { _ in }
@@ -218,8 +218,23 @@ extension GitLogViewController: NSTableViewDataSource, NSTableViewDelegate {
             return view
         }
         let cell = tableView.makeView(withIdentifier: GitStatusCell.identifier, owner: nil) as? GitStatusCell ?? GitStatusCell()
-        cell.show(.init(text: Self.text(commit, stacked: stacked), accessibility: Self.spoken(commit), indent: 0, lines: stacked ? 2 : 1))
+        cell.show(content(commit))
         return cell
+    }
+
+    private func content(_ commit: GitCommit) -> GitStatusCell.Content {
+        .init(text: Self.text(commit, stacked: stacked), accessibility: Self.spoken(commit), indent: 0, lines: stacked ? 0 : 1)
+    }
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        guard stacked, let commit = commits[safe: row], let column = tableView.tableColumns.last else { return tableView.rowHeight }
+        return max(tableView.rowHeight, GitStatusCell.height(of: content(commit), width: column.width))
+    }
+
+    // ponytail: measures every loaded commit (a page is 500) on each width change; cache by width if resizing stutters.
+    func tableViewColumnDidResize(_ notification: Notification) {
+        guard stacked else { return }
+        table.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<commits.count))
     }
 
     /// Its id, branches and tags, subject, author and date; stacked, the subject comes first, alone on its line.
