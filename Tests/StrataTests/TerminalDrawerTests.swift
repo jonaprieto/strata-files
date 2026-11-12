@@ -16,6 +16,18 @@ import Testing
         handle.mouseUp(with: event(.leftMouseUp, end))
     }
 
+    /// SwiftTerm keeps its colors as fixed values; the terminal's text and background follow the appearance, so dark
+    /// never shows black text, nor light white.
+    @Test func theTerminalsColorsFollowLightAndDark() throws {
+        let terminal = DroppingTerminalView(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
+        func brightness(_ color: NSColor) throws -> CGFloat { try #require(color.usingColorSpace(.sRGB)).brightnessComponent }
+        for (name, dark) in [(NSAppearance.Name.darkAqua, true), (.aqua, false), (.darkAqua, true)] {
+            terminal.appearance = NSAppearance(named: name)
+            #expect((try brightness(terminal.nativeForegroundColor) > 0.7) == dark, "\(name)")
+            #expect((try brightness(terminal.nativeBackgroundColor) < 0.3) == dark, "\(name)")
+        }
+    }
+
     @Test func droppedPathsAreQuotedAndNeverEndInReturn() {
         let text = TerminalText.paths([URL(fileURLWithPath: "/tmp/a b"), URL(fileURLWithPath: "/tmp/it's"), URL(fileURLWithPath: "/tmp/$(rm -rf ~)")])
         #expect(text == "'/tmp/a b' '/tmp/it'\\''s' '/tmp/$(rm -rf ~)' ")
