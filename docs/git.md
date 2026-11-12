@@ -120,7 +120,9 @@ using your own ssh agent and credential helpers.
 shell; ⌃⌘` again hides it, and the same shell is there when it comes back. Shown again from another folder, a shell
 waiting at its prompt goes to the active pane's folder (a `cd` it runs for you, after clearing anything typed at the
 prompt); while a program runs in it, nothing is typed. The button beside Go to Pane Folder moves it to the panes'
-right, the whole height, and back under them; new windows open it where you left it. Drag its edge facing the panes
+right, the whole height, and back under them; new windows open it where you left it. Settings ▸ Terminal chooses its
+font (any installed monospaced family), size and place; open drawers follow. Its colors read on every color theme:
+the background is the theme's, and programs' colors are soft on dark and deep on light. Drag its edge facing the panes
 to resize it. Files
 dropped on it are typed as quoted paths, and Go to Pane Folder types a `cd` to the active pane's folder; neither
 presses Return, so nothing runs until you do (a name holding a control character isn't typed at all). Open in

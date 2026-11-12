@@ -13,6 +13,8 @@ extension Notification.Name {
     package static let previewOptionsChanged = Notification.Name("StrataPreviewOptionsChanged")
     /// A sidebar section was hidden or shown: every window's sidebar follows.
     package static let sidebarSectionsCollapsed = Notification.Name("StrataSidebarSectionsCollapsed")
+    /// The terminal drawer's font, size or place changed (Settings ▸ Terminal): every drawer follows.
+    package static let terminalChanged = Notification.Name("StrataTerminalChanged")
 }
 
 /// Typed app settings. Production shares one instance; independent environments supply their own defaults and
@@ -97,6 +99,8 @@ package final class Prefs: PreviewTextSettings {
         static let toolbarItems = "toolbarItems"
         static let toolbarDisplayMode = "toolbarDisplayMode"
         static let terminalAtRight = "terminalAtRight"
+        static let terminalFontFamily = "terminalFontFamily"
+        static let terminalFontSize = "terminalFontSize"
         static let knownListColumns = "knownListColumns"
         static let dockSearch = "dockSearch"
         static let collapsedSidebarSections = "collapsedSidebarSections"
@@ -377,7 +381,22 @@ package final class Prefs: PreviewTextSettings {
     /// The terminal drawer sits at the panes' right rather than under them.
     package var terminalAtRight: Bool {
         get { defaults.bool(forKey: Key.terminalAtRight) }
-        set { defaults.set(newValue, forKey: Key.terminalAtRight) }
+        set { defaults.set(newValue, forKey: Key.terminalAtRight); notifications.post(name: .terminalChanged, object: self) }
+    }
+
+    /// The drawer's font family; nil for the system's monospaced font.
+    package var terminalFontFamily: String? {
+        get { defaults.string(forKey: Key.terminalFontFamily) }
+        set { defaults.set(newValue, forKey: Key.terminalFontFamily); notifications.post(name: .terminalChanged, object: self) }
+    }
+
+    /// The drawer's font size in points, 9 to 24.
+    package var terminalFontSize: Double {
+        get {
+            let size = defaults.double(forKey: Key.terminalFontSize)
+            return size == 0 ? 12 : min(max(size, 9), 24)
+        }
+        set { defaults.set(min(max(newValue, 9), 24), forKey: Key.terminalFontSize); notifications.post(name: .terminalChanged, object: self) }
     }
 
     /// Native toolbar layouts use this environment rather than AppKit's process-wide defaults.

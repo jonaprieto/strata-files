@@ -56,6 +56,37 @@ import Testing
         }
     }
 
+    /// Settings ▸ Terminal: the drawer's font, size and place, kept within limits, and every open drawer follows a change.
+    @Test func theDrawerFollowsItsSettings() throws {
+        let preferences = try Prefs.isolated()
+        #expect(preferences.terminalFontFamily == nil && preferences.terminalFontSize == 12)
+        preferences.terminalFontSize = 3
+        #expect(preferences.terminalFontSize == 9)
+        preferences.terminalFontSize = 99
+        #expect(preferences.terminalFontSize == 24)
+
+        let drawer = TerminalDrawerController(preferences: preferences)
+        _ = drawer.view
+        #expect(drawer.terminal.font.isFixedPitch)
+        preferences.terminalFontSize = 15
+        #expect(drawer.terminal.font.pointSize == 15)
+        let family = try #require(TerminalFonts.families().first { $0 != "Menlo" } ?? TerminalFonts.families().first)
+        preferences.terminalFontFamily = family
+        #expect(drawer.terminal.font.familyName == family && drawer.terminal.font.pointSize == 15)
+        preferences.terminalFontFamily = "No Such Font"
+        #expect(drawer.terminal.font.isFixedPitch && drawer.terminal.font.pointSize == 15)
+
+        var moved = 0
+        drawer.onEdgeChange = { moved += 1 }
+        preferences.terminalAtRight = true
+        #expect(drawer.edge == .right && moved == 1)
+        preferences.terminalAtRight = true
+        #expect(moved == 1)
+        drawer.moveToOtherEdge()
+        #expect(drawer.edge == .bottom && !preferences.terminalAtRight && moved == 2)
+        #expect(TerminalFonts.families().allSatisfy { family in TerminalFonts.font(family: family, size: 12).isFixedPitch })
+    }
+
     @Test func droppedPathsAreQuotedAndNeverEndInReturn() {
         let text = TerminalText.paths([URL(fileURLWithPath: "/tmp/a b"), URL(fileURLWithPath: "/tmp/it's"), URL(fileURLWithPath: "/tmp/$(rm -rf ~)")])
         #expect(text == "'/tmp/a b' '/tmp/it'\\''s' '/tmp/$(rm -rf ~)' ")
