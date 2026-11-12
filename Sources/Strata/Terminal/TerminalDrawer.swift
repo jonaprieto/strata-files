@@ -267,8 +267,29 @@ final class TerminalDrawerController: NSViewController {
     }
 }
 
+/// The 16 ANSI colors programs choose from, one set for dark and one for light. SwiftTerm's own were drawn for a black
+/// background: its blue was too dark to read on a dark theme. These read on every theme's text previews (the terminal's
+/// background): soft tones on dark, deep ones on light.
+enum TerminalPalette {
+    static func colors(dark: Bool) -> [NSColor] {
+        (dark ? Self.dark : Self.light).map { hex in
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        }
+    }
+
+    // Black, red, green, yellow, blue, magenta, cyan, white; then their bright forms.
+    private static let dark: [Int] = [
+        0x45475A, 0xFFB0C3, 0xA6E3A1, 0xF9E2AF, 0xA4C8FF, 0xF5C2E7, 0x94E2D5, 0xC6CCE4,
+        0xA0A4BC, 0xFFC0CF, 0xB9F2B4, 0xFFF0C2, 0xB8D4FF, 0xFFD3F0, 0xA8F0E4, 0xE6EBFF,
+    ]
+    private static let light: [Int] = [
+        0x303446, 0xB4002D, 0x1F6E1F, 0x7A4F00, 0x1E50B8, 0x8E2AA0, 0x0D6470, 0xC8CCD8,
+        0x6C6F85, 0xA8002A, 0x1A651A, 0x704800, 0x1A48A8, 0x822496, 0x0B5C67, 0xEFF1F5,
+    ]
+}
+
 /// The terminal view, taking dropped files as quoted paths typed at the prompt.
-final class DroppingTerminalView: LocalProcessTerminalView {
+final class DroppingTerminalView: LocalProcessTerminalView, ColorThemeUpdating {
     override init(frame: CGRect) {
         super.init(frame: frame)
         registerForDraggedTypes([.fileURL])
@@ -280,19 +301,25 @@ final class DroppingTerminalView: LocalProcessTerminalView {
         applyColors()
     }
 
+    /// Another theme chosen in Settings: its background.
+    func updateColorTheme() { applyColors() }
+
     /// SwiftTerm keeps its text and background colors as fixed values, read once under whatever appearance was current
     /// then: in a dark window it showed black text. They're read again for this view's appearance whenever it changes,
-    /// the background from the theme's file list.
+    /// the background from the theme's text previews.
     private func applyColors() {
         var colors: (text: NSColor, background: NSColor)?
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            if let text = NSColor.textColor.usingColorSpace(.sRGB), let background = ThemeStyle.surface(.content).usingColorSpace(.sRGB) {
+            if let text = NSColor.textColor.usingColorSpace(.sRGB), let background = ThemeStyle.surface(.preview).usingColorSpace(.sRGB) {
                 colors = (text, background)
             }
         }
         guard let colors else { return }
         nativeForegroundColor = colors.text
         nativeBackgroundColor = colors.background
+        installColors(TerminalPalette.colors(dark: effectiveAppearance.isDark).map { color in
+            Color(red: UInt16(color.redComponent * 65535), green: UInt16(color.greenComponent * 65535), blue: UInt16(color.blueComponent * 65535))
+        })
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
