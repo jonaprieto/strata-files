@@ -737,6 +737,7 @@
     "Clear the history of file operations?": "Ștergi istoricul operațiunilor cu fișiere?",
     "Click a shortcut, then press the keys. ⌫ removes it; esc keeps it.": "Fă clic pe o scurtătură, apoi apasă tastele. ⌫ o elimină; esc o păstrează.",
     "Click waveform to seek": "Clic pe forma de undă pentru a sări",
+    "Click, then type the new shortcut": "Faceți clic, apoi tastați noua scurtătură",
     "Clipboard": "Clipboard",
     "Close": "Închide",
     "Close any files from it that are open in other apps, then try again. (%@)": "Închide fișierele de pe acest disc deschise în alte aplicații, apoi încearcă din nou. (%@)",

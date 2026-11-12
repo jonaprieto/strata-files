@@ -642,6 +642,7 @@
     "Clear the history of file operations?": "Vil du rydde historikken over filhandlinger?",
     "Click a shortcut, then press the keys. ⌫ removes it; esc keeps it.": "Klik på en genvej, og tryk derefter på tasterne. ⌫ fjerner den, esc beholder den.",
     "Click waveform to seek": "Klik på bølgeformen for at spole",
+    "Click, then type the new shortcut": "Klik, og skriv derefter den nye genvej",
     "Clipboard": "Udklipsholder",
     "Close": "Luk",
     "Close any files from it that are open in other apps, then try again. (%@)": "Luk alle filer fra den, der er åbne i andre apps, og prøv igen. (%@)",

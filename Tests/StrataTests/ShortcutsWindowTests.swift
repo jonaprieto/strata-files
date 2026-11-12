@@ -3,7 +3,7 @@ import Testing
 @testable import Strata
 
 /// The keyboard button and the Shortcuts window: every key Strata answers to, Dired's and git's included.
-@Suite struct ShortcutsWindowTests {
+@Suite(.serialized) struct ShortcutsWindowTests {
     @Test func theKeyboardButtonIsInTheToolbar() {
         let id = BrowserToolbar.identifier(.showShortcuts)
         #expect(BrowserToolbar.defaults.contains(id))
@@ -29,5 +29,22 @@ import Testing
                                   ("terminal", "Terminal under the panes"), ("dired", "Move to Trash")] {
             #expect(window.shownActions(matching: query).contains(String(localized: String.LocalizationValue(expected))), "\(query)")
         }
+    }
+
+    /// A menu command's row changes its shortcut in place: the row holds the same recorder as Settings ▸ Shortcuts. Keys
+    /// that aren't a menu's (typing to filter, Dired's letters) stay keycaps.
+    @Test func aMenuCommandsShortcutChangesFromItsRow() throws {
+        let menu = NSMenu()
+        let item = NSMenuItem(title: "Go to Folder…", action: #selector(BrowserWindowController.goToFolder(_:)), keyEquivalent: "g")
+        item.keyEquivalentModifierMask = [.command, .shift]
+        menu.addItem(item)
+        ShortcutStore.shared.install(menu)
+        defer { ShortcutStore.shared.install(NSMenu()) }
+        let window = ShortcutsWindowController(restoresFrame: false)
+        defer { window.window?.contentView = nil }
+        let goTo = String(localized: "Go to folder")
+        #expect(window.editableActions(matching: "folder").contains(goTo))
+        #expect(!window.editableActions(matching: "").contains(String(localized: "Type in the list to filter this folder (fuzzy)")))
+        #expect(!window.editableActions(matching: "dired").contains(String(localized: "Move to Trash")))
     }
 }

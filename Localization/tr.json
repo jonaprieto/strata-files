@@ -642,6 +642,7 @@
     "Clear the history of file operations?": "Dosya işlemleri geçmişi temizlensin mi?",
     "Click a shortcut, then press the keys. ⌫ removes it; esc keeps it.": "Bir kestirmeyi tıklayın, sonra tuşlara basın. ⌫ kestirmeyi siler; esc olduğu gibi bırakır.",
     "Click waveform to seek": "Atlamak için dalga biçimine tıklayın",
+    "Click, then type the new shortcut": "Tıklayın, ardından yeni kısayolu yazın",
     "Clipboard": "Pano",
     "Close": "Kapat",
     "Close any files from it that are open in other apps, then try again. (%@)": "Diğer uygulamalarda açık olan dosyalarını kapatıp yeniden deneyin. (%@)",

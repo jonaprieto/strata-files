@@ -642,6 +642,7 @@
     "Clear the history of file operations?": "Vill du rensa historiken över filåtgärder?",
     "Click a shortcut, then press the keys. ⌫ removes it; esc keeps it.": "Klicka på ett kortkommando och tryck sedan på tangenterna. ⌫ tar bort det; esc behåller det.",
     "Click waveform to seek": "Klicka på vågformen för att söka",
+    "Click, then type the new shortcut": "Klicka och skriv sedan det nya kortkommandot",
     "Clipboard": "Urklipp",
     "Close": "Stäng",
     "Close any files from it that are open in other apps, then try again. (%@)": "Stäng alla filer härifrån som är öppna i andra appar och försök igen. (%@)",

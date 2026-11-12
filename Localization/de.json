@@ -642,6 +642,7 @@
     "Clear the history of file operations?": "Verlauf der Dateivorgänge löschen?",
     "Click a shortcut, then press the keys. ⌫ removes it; esc keeps it.": "Klicke auf einen Kurzbefehl und drücke dann die Tasten. ⌫ entfernt ihn, esc behält ihn bei.",
     "Click waveform to seek": "Zum Springen auf die Wellenform klicken",
+    "Click, then type the new shortcut": "Klicken, dann den neuen Kurzbefehl tippen",
     "Clipboard": "Zwischenablage",
     "Close": "Schließen",
     "Close any files from it that are open in other apps, then try again. (%@)": "Schließe alle Dateien davon, die in anderen Apps geöffnet sind, und versuche es erneut. (%@)",

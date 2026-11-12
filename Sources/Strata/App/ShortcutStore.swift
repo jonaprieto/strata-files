@@ -235,6 +235,12 @@ final class ShortcutStore {
         overrides = [:]
     }
 
+    /// The listed command whose built-in shortcut is `builtIn` ("⇧⌘G"), so a list naming it can change it.
+    func command(builtIn: String) -> Command? {
+        guard let id = idByDefaultDisplay[builtIn] else { return nil }
+        return commands.first { $0.id == id }
+    }
+
     /// A built-in shortcut as currently set: "⇧⌘G" → what you changed it to ("" when removed). Text that isn't a
     /// command's built-in shortcut ("Space", "a–z") comes back as it is.
     func live(_ builtIn: String) -> String {
