@@ -7,6 +7,9 @@ enum MarkdownAsset {
     var isBlock: Bool {
         switch self { case .diagram: true; case .equation(let equation): equation.display }
     }
+    var isEquation: Bool {
+        if case .equation = self { true } else { false }
+    }
     var source: String {
         switch self { case .diagram(let source): source; case .equation(let equation): equation.source }
     }

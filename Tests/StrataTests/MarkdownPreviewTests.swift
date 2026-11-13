@@ -147,6 +147,25 @@ import Testing
         #expect(tree.text("diagram.md") == "```mermaid\ngraph TD; A-->B\n```\n")
     }
 
+    @Test func equationsAndDiagramsDrawnTogetherAllLandWhereTheyBelong() async throws {
+        let tree = try TestTree("mixed.md")
+        let text = "Inline $a^2$ here.\n\n```mermaid\ngraph TD; A-->B\n```\n\n$$x = 1$$\n\nThen $b$ and\n\n```mermaid\ngraph LR; C-->D\n```\n"
+        try Data(text.utf8).write(to: tree.url("mixed.md"))
+        let view = MarkdownPreviewView(url: tree.url("mixed.md"))
+        view.setFrameSize(NSSize(width: 700, height: 500))
+        await view.loadingTask?.value
+        await view.renderingTask?.value
+        let storage = try #require(view.textView.textStorage)
+        var drawn: [String] = []
+        storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, _, _ in
+            if let description = (value as? NSTextAttachment)?.image?.accessibilityDescription { drawn.append(description) }
+        }
+        #expect(drawn == ["a^2", "graph TD; A-->B", "x = 1", "b", "graph LR; C-->D"])
+        #expect(view.textView.assets.count == 5)
+        #expect(storage.string.hasPrefix("Inline \u{FFFC} here."))
+        #expect(tree.text("mixed.md") == text)
+    }
+
     @Test func markdownPreviewUsesDocumentSearchWhileFolderFilterKeepsItsMeaning() async throws {
         let tree = try TestTree("folder/document.md")
         try Data("# Chosen\nneedle needle".utf8).write(to: tree.url("folder/document.md"))

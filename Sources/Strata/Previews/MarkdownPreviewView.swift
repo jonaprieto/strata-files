@@ -166,21 +166,40 @@ import StrataSupport
         guard !placeholders.isEmpty else { return }
         let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let mathTimeLimit = mathTimeLimit
-        renderingTask = Task { [weak self] in
+        let deliver: @MainActor @Sendable ([MarkdownAsset.Image]) -> Void = { [weak self] images in
+            guard let self, textView.renderingError == nil, renderingRevision == revision else { return }
+            apply(images)
+        }
+        let equations = placeholders.filter(\.asset.isEquation), diagrams = placeholders.filter { !$0.asset.isEquation }
+        renderingTask = Task {
             let renderers = MarkdownAssetRenderers(mathTimeLimit: mathTimeLimit)
             defer { renderers.close() }
-            var images: [MarkdownAsset.Image] = []
-            for placeholder in placeholders {
-                guard !Task.isCancelled else { return }
-                if let image = try? await renderers.render(placeholder, dark: dark) { images.append(image) }
-            }
-            guard !Task.isCancelled, let self, textView.renderingError == nil, renderingRevision == revision else { return }
-            apply(images)
+            // Diagrams and equations each load their own web view, which is most of the wait: load both at once, and
+            // show each kind as soon as it's drawn.
+            async let drawnDiagrams: Void = Self.render(diagrams, with: renderers, dark: dark, then: deliver)
+            async let drawnEquations: Void = Self.render(equations, with: renderers, dark: dark, then: deliver)
+            _ = await (drawnDiagrams, drawnEquations)
         }
     }
 
-    private func apply(_ images: [MarkdownAsset.Image]) {
-        guard let storage = textView.textStorage, !images.isEmpty else { return }
+    private static func render(_ placeholders: [MarkdownAsset.Placeholder], with renderers: MarkdownAssetRenderers, dark: Bool,
+                               then deliver: @MainActor @Sendable ([MarkdownAsset.Image]) -> Void) async {
+        var images: [MarkdownAsset.Image] = []
+        for placeholder in placeholders {
+            guard !Task.isCancelled else { return }
+            if let image = try? await renderers.render(placeholder, dark: dark) { images.append(image) }
+        }
+        guard !Task.isCancelled else { return }
+        deliver(images)
+    }
+
+    private func apply(_ rendered: [MarkdownAsset.Image]) {
+        guard let storage = textView.textStorage, !rendered.isEmpty else { return }
+        // The other kind may have landed first and moved these placeholders.
+        let current = Dictionary(MarkdownAsset.placeholders(in: storage).map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let images = rendered.compactMap { image in
+            current[image.placeholder.id].map { MarkdownAsset.Image(placeholder: $0, image: image.image, descent: image.descent) }
+        }
         var ranges: [NSValue] = [], replacements: [NSAttributedString] = []
         var previous: [NSTextAttachment] = [], attachments: [NSTextAttachment] = []
         for image in images {
