@@ -62,6 +62,8 @@ import WebKit
 
     func close() { retire(CancellationError()) }
 
+    var isAvailable: Bool { !closed && pending == nil }
+
     private func retire(_ error: Error) {
         guard !closed else { return }
         closed = true; revision &+= 1

@@ -60,6 +60,8 @@ private final class MathBundleMarker {}
 
     func close() { renderer.close() }
 
+    var isAvailable: Bool { renderer.isAvailable }
+
     private static let document = """
     <!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
     <style>body { margin:0; background:transparent; line-height:normal; } #math {display:inline-block;}

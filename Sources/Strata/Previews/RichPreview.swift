@@ -14,14 +14,15 @@ package enum RichPreview {
     /// `fallback` runs if the file turns out not to suit a rich preview after all (a `.ts` video, a `.db` that isn't
     /// SQLite, binary data under a text extension); show Quick Look then. Without it, the view says "No Preview Available".
     package static func makeView(for url: URL, contentType: UTType?, preferences: any PreviewTextSettings, clipboard: Clipboard,
-                                 media: MediaAnalysisReader = MediaAnalysisReader(), fallback: (() -> Void)? = nil) -> NSView? {
+                                 media: MediaAnalysisReader = MediaAnalysisReader(), markdownAssets: MarkdownAssetRenderers = MarkdownAssetRenderers(),
+                                 fallback: (() -> Void)? = nil) -> NSView? {
         guard let format = PreviewFormat(url: url, contentType: contentType) else { return nil }
         let view: PreviewView = switch format {
         case .code(let language): CodePreviewView(url: url, mode: .source(language), preferences: preferences)
         case .json: CodePreviewView(url: url, mode: .json, preferences: preferences)
         case .pdf: PDFPreviewView(url: url)
-        case .markdown: MarkdownPreviewView(url: url)
-        case .notebook: MarkdownPreviewView(notebook: url)
+        case .markdown: MarkdownPreviewView(url: url, renderers: markdownAssets)
+        case .notebook: MarkdownPreviewView(notebook: url, renderers: markdownAssets)
         case .html: HTMLPreviewView(url: url, preferences: preferences)
         case .epub: EPUBPreviewView(url: url)
         case .onenote: OneNotePreviewView(url: url)

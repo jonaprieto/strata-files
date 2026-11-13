@@ -166,6 +166,61 @@ import Testing
         #expect(tree.text("mixed.md") == text)
     }
 
+    private func drawn(_ view: MarkdownPreviewView) throws -> [String] {
+        let storage = try #require(view.textView.textStorage)
+        var drawn: [String] = []
+        storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, _, _ in
+            if let description = (value as? NSTextAttachment)?.image?.accessibilityDescription { drawn.append(description) }
+        }
+        return drawn
+    }
+
+    private func shown(_ url: URL, with renderers: MarkdownAssetRenderers) async -> MarkdownPreviewView {
+        let view = MarkdownPreviewView(url: url, renderers: renderers)
+        view.setFrameSize(NSSize(width: 700, height: 500))
+        await view.loadingTask?.value
+        await view.renderingTask?.value
+        return view
+    }
+
+    @Test func previewsSharingRenderersKeepThemLoadedAndGetFreshOnesOnceClosed() async throws {
+        let tree = try TestTree("one.md", "two.md")
+        let text = "Inline $a^2$.\n\n```mermaid\ngraph TD; A-->B\n```\n"
+        for name in ["one.md", "two.md"] { try Data(text.utf8).write(to: tree.url(name)) }
+        let renderers = MarkdownAssetRenderers(mathTimeLimit: PreviewWebPage.noTimeLimit)
+        defer { renderers.close() }
+        let first = await shown(tree.url("one.md"), with: renderers)
+        #expect(try drawn(first) == ["a^2", "graph TD; A-->B"])
+        let diagrams = try #require(renderers.diagrams), math = try #require(renderers.math)
+        let second = await shown(tree.url("two.md"), with: renderers)
+        #expect(try drawn(second) == ["a^2", "graph TD; A-->B"])
+        #expect(renderers.diagrams === diagrams && renderers.math === math)
+        renderers.close()
+        let third = await shown(tree.url("one.md"), with: renderers)
+        #expect(try drawn(third) == ["a^2", "graph TD; A-->B"])
+        #expect(renderers.diagrams !== diagrams && renderers.math !== math)
+        #expect(tree.text("one.md") == text && tree.text("two.md") == text)
+    }
+
+    @Test func previewsDrawingAtOnceWithSharedRenderersEachGetEveryAsset() async throws {
+        let tree = try TestTree("one.md", "two.md")
+        let one = "First $a^2$.\n\n```mermaid\ngraph TD; A-->B\n```\n", two = "Second $b$.\n\n```mermaid\ngraph LR; C-->D\n```\n"
+        try Data(one.utf8).write(to: tree.url("one.md"))
+        try Data(two.utf8).write(to: tree.url("two.md"))
+        let renderers = MarkdownAssetRenderers(mathTimeLimit: PreviewWebPage.noTimeLimit)
+        defer { renderers.close() }
+        let first = MarkdownPreviewView(url: tree.url("one.md"), renderers: renderers)
+        let second = MarkdownPreviewView(url: tree.url("two.md"), renderers: renderers)
+        for view in [first, second] { view.setFrameSize(NSSize(width: 700, height: 500)) }
+        await first.loadingTask?.value
+        await second.loadingTask?.value
+        await first.renderingTask?.value
+        await second.renderingTask?.value
+        #expect(try drawn(first) == ["a^2", "graph TD; A-->B"])
+        #expect(try drawn(second) == ["b", "graph LR; C-->D"])
+        #expect(tree.text("one.md") == one && tree.text("two.md") == two)
+    }
+
     @Test func markdownPreviewUsesDocumentSearchWhileFolderFilterKeepsItsMeaning() async throws {
         let tree = try TestTree("folder/document.md")
         try Data("# Chosen\nneedle needle".utf8).write(to: tree.url("folder/document.md"))

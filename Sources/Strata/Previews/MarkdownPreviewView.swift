@@ -13,23 +13,23 @@ import StrataSupport
     private var renderingRevision = 0
     private var renderingStopped = false
     private let layoutManager = MarkdownLayoutManager()
-    private let mathTimeLimit: OfflineImageRenderer.TimeLimit
+    private let renderers: MarkdownAssetRenderers
 
-    package convenience init(url: URL) {
-        self.init(url: url, mathTimeLimit: MathRenderer.usualTimeLimit)
+    package convenience init(url: URL, renderers: MarkdownAssetRenderers = MarkdownAssetRenderers()) {
+        self.init(loadDocument: { try await MarkdownLoader.load(url) }, renderers: renderers)
     }
 
-    package convenience init(notebook url: URL) {
-        self.init(loadDocument: { try await NotebookLoader.load(url) }, mathTimeLimit: MathRenderer.usualTimeLimit)
+    package convenience init(notebook url: URL, renderers: MarkdownAssetRenderers = MarkdownAssetRenderers()) {
+        self.init(loadDocument: { try await NotebookLoader.load(url) }, renderers: renderers)
     }
 
     convenience init(url: URL, mathTimeLimit: @escaping OfflineImageRenderer.TimeLimit) {
-        self.init(loadDocument: { try await MarkdownLoader.load(url) }, mathTimeLimit: mathTimeLimit)
+        self.init(url: url, renderers: MarkdownAssetRenderers(mathTimeLimit: mathTimeLimit))
     }
 
     init(loadDocument: @escaping @concurrent @Sendable () async throws -> MarkdownDocument,
-         mathTimeLimit: @escaping OfflineImageRenderer.TimeLimit) {
-        self.mathTimeLimit = mathTimeLimit
+         renderers: MarkdownAssetRenderers) {
+        self.renderers = renderers
         super.init(frame: .zero)
         configure()
         load(loadDocument) { [weak self] document in
@@ -165,15 +165,13 @@ import StrataSupport
         effectiveAppearance.performAsCurrentDrawingAppearance { placeholders = MarkdownAsset.placeholders(in: storage) }
         guard !placeholders.isEmpty else { return }
         let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let mathTimeLimit = mathTimeLimit
+        let renderers = renderers
         let deliver: @MainActor @Sendable ([MarkdownAsset.Image]) -> Void = { [weak self] images in
             guard let self, textView.renderingError == nil, renderingRevision == revision else { return }
             apply(images)
         }
         let equations = placeholders.filter(\.asset.isEquation), diagrams = placeholders.filter { !$0.asset.isEquation }
         renderingTask = Task {
-            let renderers = MarkdownAssetRenderers(mathTimeLimit: mathTimeLimit)
-            defer { renderers.close() }
             // Diagrams and equations each load their own web view, which is most of the wait: load both at once, and
             // show each kind as soon as it's drawn.
             async let drawnDiagrams: Void = Self.render(diagrams, with: renderers, dark: dark, then: deliver)
@@ -185,9 +183,10 @@ import StrataSupport
     private static func render(_ placeholders: [MarkdownAsset.Placeholder], with renderers: MarkdownAssetRenderers, dark: Bool,
                                then deliver: @MainActor @Sendable ([MarkdownAsset.Image]) -> Void) async {
         var images: [MarkdownAsset.Image] = []
+        var pixels = MathRenderer.pixelBudget
         for placeholder in placeholders {
             guard !Task.isCancelled else { return }
-            if let image = try? await renderers.render(placeholder, dark: dark) { images.append(image) }
+            if let image = try? await renderers.render(placeholder, dark: dark, pixels: &pixels) { images.append(image) }
         }
         guard !Task.isCancelled else { return }
         deliver(images)

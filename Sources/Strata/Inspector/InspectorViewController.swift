@@ -57,6 +57,7 @@ final class InspectorViewController: NSViewController {
     private let previewScheduler: (DispatchWorkItem) -> Void
     typealias PreviewFactory = (FileEntry, @escaping () -> Void) -> NSView?
     private let makePreview: PreviewFactory
+    private let markdownAssets = MarkdownAssetRenderers()
     private var previewRevision = 0
     private var previewingStopped = false
     private let readSelectionSizes: InspectorSelectionSizes.Reader
@@ -78,9 +79,11 @@ final class InspectorViewController: NSViewController {
                                                 store: services.containerStore)
         self.projectView = ProjectInspectorView(files: services.files, git: services.git, clipboard: services.clipboard)
         self.previewScheduler = previewScheduler
+        let markdownAssets = markdownAssets
         self.makePreview = makePreview ?? { entry, fallback in
             RichPreview.makeView(for: entry.url, contentType: entry.contentType, preferences: services.preferences,
-                                 clipboard: services.clipboard, media: services.mediaAnalysis, fallback: fallback)
+                                 clipboard: services.clipboard, media: services.mediaAnalysis, markdownAssets: markdownAssets,
+                                 fallback: fallback)
         }
         infoEditor = InfoEditor(readFacts: InfoEditor.Facts.read(_:opensWithApps:))
         super.init(nibName: nil, bundle: nil)
@@ -91,6 +94,7 @@ final class InspectorViewController: NSViewController {
         previewWork?.cancel()
         (richPreview as? PreviewView)?.stop()
         projectTask?.cancel()
+        markdownAssets.close()
         mediaDetails.cancel()
         summary.url = nil
         infoEditor.hide()
@@ -715,6 +719,7 @@ final class InspectorViewController: NSViewController {
         previewWork = nil
         previewingContent = false
         removeRichPreview()
+        markdownAssets.close()
         guard previewRevision == revision else { return }
         preview.clear()
         mediaDetails.cancel()

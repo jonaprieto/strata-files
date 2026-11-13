@@ -58,36 +58,27 @@ enum MarkdownAsset {
 }
 
 /// One document request owns its renderers and its retained bitmap allowance.
-@MainActor final class MarkdownAssetRenderers {
+/// The web views that draw diagrams and equations, kept loaded from one preview to the next: loading one is most of
+/// the wait. A renderer that's closed (cancelled, timed out) or still drawing for an earlier preview is replaced.
+@MainActor package final class MarkdownAssetRenderers {
     private let mathTimeLimit: OfflineImageRenderer.TimeLimit
-    private var diagrams: MermaidRenderer?
-    private var math: MathRenderer?
-    private var pixels = MathRenderer.pixelBudget
+    private(set) var diagrams: MermaidRenderer?
+    private(set) var math: MathRenderer?
+
+    package convenience init() { self.init(mathTimeLimit: MathRenderer.usualTimeLimit) }
 
     init(mathTimeLimit: @escaping OfflineImageRenderer.TimeLimit) { self.mathTimeLimit = mathTimeLimit }
 
-    func render(_ placeholder: MarkdownAsset.Placeholder, dark: Bool) async throws -> MarkdownAsset.Image {
+    func render(_ placeholder: MarkdownAsset.Placeholder, dark: Bool, pixels: inout Int) async throws -> MarkdownAsset.Image {
         let image: NSImage
         var descent: CGFloat = 0
         switch placeholder.asset {
         case .diagram(let source):
-            if diagrams == nil {
-                let script = try await MermaidRenderer.script(), rules = try await HTMLWebSession.contentRules()
-                try Task.checkCancellation()
-                diagrams = MermaidRenderer(script: script, rules: rules)
-            }
-            guard let diagrams else { throw PreviewError.unsupported }
-            image = try await diagrams.render(source, dark: dark)
+            image = try await diagramRenderer().render(source, dark: dark)
             image.size = NSSize(width: image.size.width / 2, height: image.size.height / 2)
         case .equation(let equation):
             guard pixels > 0 else { throw PreviewError.unsupported }
-            if math == nil {
-                let script = try await MathRenderer.script(), rules = try await HTMLWebSession.contentRules()
-                try Task.checkCancellation()
-                math = MathRenderer(script: script, rules: rules, timeLimit: mathTimeLimit)
-            }
-            guard let math else { throw PreviewError.unsupported }
-            let result = try await math.render(equation.source, display: equation.display, pointSize: placeholder.pointSize, color: placeholder.color)
+            let result = try await mathRenderer().render(equation.source, display: equation.display, pointSize: placeholder.pointSize, color: placeholder.color)
             guard result.pixels <= pixels else { throw PreviewError.unsupported }
             pixels -= result.pixels; image = result.image; descent = result.descent
         }
@@ -95,7 +86,30 @@ enum MarkdownAsset {
         return MarkdownAsset.Image(placeholder: placeholder, image: image, descent: descent)
     }
 
-    func close() { diagrams?.close(); math?.close() }
+    private func diagramRenderer() async throws -> MermaidRenderer {
+        if let diagrams, diagrams.isAvailable { return diagrams }
+        let script = try await MermaidRenderer.script(), rules = try await HTMLWebSession.contentRules()
+        try Task.checkCancellation()
+        if let diagrams, diagrams.isAvailable { return diagrams }
+        let made = MermaidRenderer(script: script, rules: rules)
+        diagrams = made
+        return made
+    }
+
+    private func mathRenderer() async throws -> MathRenderer {
+        if let math, math.isAvailable { return math }
+        let script = try await MathRenderer.script(), rules = try await HTMLWebSession.contentRules()
+        try Task.checkCancellation()
+        if let math, math.isAvailable { return math }
+        let made = MathRenderer(script: script, rules: rules, timeLimit: mathTimeLimit)
+        math = made
+        return made
+    }
+
+    package func close() {
+        diagrams?.close(); math?.close()
+        diagrams = nil; math = nil
+    }
 }
 
 nonisolated final class MathTextAttachment: NSTextAttachment {
