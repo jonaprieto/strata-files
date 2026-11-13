@@ -86,6 +86,7 @@ package final class Prefs: PreviewTextSettings {
         static let previewBrowserFraction = "previewBrowserFraction"
         static let previewColumnWidths = "previewColumnWidths"
         static let verifyCopies = "verifyCopies"
+        static let previewPDFsInPaperShelf = "previewPDFsInPaperShelf"
         static let favoritePaths = "favoritePaths"
         static let reopenWindows = "reopenWindows"
         static let openArchivesAsFolders = "openArchivesAsFolders"
@@ -369,6 +370,11 @@ package final class Prefs: PreviewTextSettings {
     package var verifyCopies: Bool {
         get { defaults.bool(forKey: Key.verifyCopies) }
         set { defaults.set(newValue, forKey: Key.verifyCopies) }
+    }
+
+    package var previewPDFsInPaperShelf: Bool {
+        get { defaults.bool(forKey: Key.previewPDFsInPaperShelf) }
+        set { defaults.set(newValue, forKey: Key.previewPDFsInPaperShelf) }
     }
 
     package var newWindowLocation: NewWindowLocation {
