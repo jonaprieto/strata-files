@@ -150,6 +150,9 @@ private struct GeneralSettings: View {
                 PrefToggle(title: "Dired keys",
                            caption: "Letters run commands, as in Emacs: n and p or j and k move, h and l go out and in, f opens, ^ goes up, g reloads, R renames, + makes a folder, C copies to the other pane, D moves to Trash. / filters.",
                            get: { Prefs.shared.diredKeys }, set: { Prefs.shared.diredKeys = $0 })
+                PrefToggle(title: "Space opens PDFs in PaperShelf",
+                           caption: "Instead of Strata’s preview, when PaperShelf is installed.",
+                           get: { Prefs.shared.previewPDFsInPaperShelf }, set: { Prefs.shared.previewPDFsInPaperShelf = $0 })
                 NewWindowFolderSettings(preferences: .shared).settingAnchor(.newWindowFolder)
             }
             Section("New Files") {

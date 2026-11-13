@@ -13,12 +13,27 @@ extension BrowserViewController {
             return
         }
         if selectedEntries.count == 1, let entry = selectedEntries.first {
+            if preferences.previewPDFsInPaperShelf, Self.opensInPaperShelf(entry) { return previewInPaperShelf(entry) }
             services.previews.show(entry, from: self)
         } else if let panel = QLPreviewPanel.shared() {
             openQuickLook { [weak self] in
                 guard let self else { return }
                 _ = services.windows.preview(panel, focusView)
             }
+        }
+    }
+
+    private static let paperShelfBundleID = "com.jonaprieto.pdfhammer"
+
+    static func opensInPaperShelf(_ entry: FileEntry) -> Bool {
+        guard !entry.isDirectory, case .pdf? = PreviewFormat(url: entry.url, contentType: entry.contentType) else { return false }
+        return true
+    }
+
+    private func previewInPaperShelf(_ entry: FileEntry) {
+        fetches.afterReading({ NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.paperShelfBundleID) }) { [weak self] app in
+            guard let self, selectedEntries.count == 1, selectedEntries.first?.url == entry.url else { return }
+            if let app { open([entry.url], withApplicationAt: app) } else { services.previews.show(entry, from: self) }
         }
     }
 

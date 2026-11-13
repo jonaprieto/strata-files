@@ -25,4 +25,12 @@ import Testing
         #expect(chosen.map(\.lastPathComponent) == ["file.txt", "folder link"])
         #expect(tree.snapshot() == ["Tool.app/", "Tool.app/Contents/", "file.txt", "folder link -> folder", "folder/"])
     }
+
+    @Test func paperShelfTakesPDFsButNotFoldersOrOtherFiles() throws {
+        let tree = try TestTree("paper.pdf", "SCAN.PDF", "notes.txt", "papers.pdf/")
+        let names = ["paper.pdf", "SCAN.PDF", "notes.txt", "papers.pdf"]
+        let chosen = try entries(tree, names).filter(BrowserViewController.opensInPaperShelf)
+        #expect(chosen.map(\.url.lastPathComponent) == ["paper.pdf", "SCAN.PDF"])
+        #expect(tree.snapshot() == ["SCAN.PDF", "notes.txt", "paper.pdf", "papers.pdf/"])
+    }
 }
