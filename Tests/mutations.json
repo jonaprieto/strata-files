@@ -9114,8 +9114,8 @@
   },
   {
     "file": "Strata/Previews/MarkdownAssets.swift",
-    "find": "math = MathRenderer(script: script, rules: rules, timeLimit: mathTimeLimit)",
-    "replace": "math = MathRenderer(script: script, rules: rules)",
+    "find": "let made = MathRenderer(script: script, rules: rules, timeLimit: mathTimeLimit)",
+    "replace": "let made = MathRenderer(script: script, rules: rules)",
     "rule": "Markdown math: the document renderer keeps its injected deadline",
     "tests": "MarkdownDrawingTests/aTimedOutEquationKeepsItsSourceAndDoesNotCloseAnotherPreview"
   },

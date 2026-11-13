@@ -10,6 +10,7 @@ import StrataPreviews
     private let preferences: Prefs
     private let clipboard: Clipboard
     private let media: MediaAnalysisReader
+    private let markdownAssets = MarkdownAssetRenderers()
     private let native = QuickLookPreviewView(frame: .zero, style: .normal)
     private let icon = NSImageView()
     private let title = NSTextField(labelWithString: "")
@@ -90,7 +91,7 @@ import StrataPreviews
         guard item != nil || ArchiveKind(fileName: entry.name) == nil else { return }
         let url = entry.url
         shownURL = url
-        if let rich = RichPreview.makeView(for: url, contentType: entry.contentType, preferences: preferences, clipboard: clipboard, media: media, fallback: { [weak self] in
+        if let rich = RichPreview.makeView(for: url, contentType: entry.contentType, preferences: preferences, clipboard: clipboard, media: media, markdownAssets: markdownAssets, fallback: { [weak self] in
             guard let self, self.generation == generation, shownURL == url else { return }
             (self.rich as? PreviewView)?.stop()
             self.rich?.removeFromSuperview()
@@ -122,6 +123,7 @@ import StrataPreviews
         rich?.removeFromSuperview()
         rich = nil
         native.close()
+        markdownAssets.close()
     }
 
     private func showNative(_ url: URL) {
