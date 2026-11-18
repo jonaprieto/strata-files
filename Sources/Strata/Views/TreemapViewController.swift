@@ -462,6 +462,12 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
         }
         sizeText.draw(with: NSRect(x: content.minX, y: y, width: content.width, height: sizeHeight),
                       options: [.usesLineFragmentOrigin])
+        y += sizeHeight
+        guard let modified = tile.item?.modified, y + sizeHeight <= content.maxY + 2 else { return }
+        let dateText = NSAttributedString(string: Format.date(modified), attributes: attributes)
+        guard dateText.size().width <= content.width else { return }
+        dateText.draw(with: NSRect(x: content.minX, y: y, width: content.width, height: sizeHeight),
+                      options: [.usesLineFragmentOrigin])
     }
 
     /// Folder icons per path (they can be custom), document icons per type; no file reads beyond Finder's icon lookup.

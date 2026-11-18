@@ -11,9 +11,11 @@ nonisolated struct TreemapItem: Sendable, Hashable {
     var sizeIncomplete = false
     let isFolder: Bool
     let contentType: UTType?
+    var modified: Date?
 
-    init(url: URL, name: String, bytes: Int64?, isFolder: Bool, contentType: UTType? = nil) {
+    init(url: URL, name: String, bytes: Int64?, isFolder: Bool, contentType: UTType? = nil, modified: Date? = nil) {
         self.url = url
+        self.modified = modified
         self.name = name
         self.bytes = bytes
         self.isFolder = isFolder
@@ -22,12 +24,12 @@ nonisolated struct TreemapItem: Sendable, Hashable {
 
     init(entry: FileEntry, bytes: Int64?) {
         self.init(url: entry.url, name: entry.displayName, bytes: bytes ?? (entry.isDirectory ? nil : entry.size ?? 0),
-                  isFolder: entry.isFolder, contentType: entry.contentType)
+                  isFolder: entry.isFolder, contentType: entry.contentType, modified: entry.modified)
     }
 
     init(entry: FileEntry, measurement: DiskSizeMeasurement) {
         self.init(url: entry.url, name: entry.displayName, bytes: measurement.bytes,
-                  isFolder: entry.isFolder, contentType: entry.contentType)
+                  isFolder: entry.isFolder, contentType: entry.contentType, modified: entry.modified)
         sizeUnavailable = measurement == .unavailable
         sizeIncomplete = measurement.isPartial
     }
