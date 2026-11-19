@@ -50,7 +50,7 @@ import Testing
             }
         }
         #expect(controller.window?.isVisible == false)
-        #expect(StrataCommand.toggleInspector.key == "i" && StrataCommand.toggleInspector.modifiers == .command)
+        #expect(StrataCommand.getInfo.key == "i" && StrataCommand.getInfo.modifiers == .command)
         #expect(tree.snapshot() == ["left/", "left/chosen.txt", "left/folder/", "left/folder/child.txt", "right/", "right/chosen.txt", "right/folder/", "right/folder/child.txt"])
     }
 
