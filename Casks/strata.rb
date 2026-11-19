@@ -1,6 +1,6 @@
 cask "strata" do
-  version "0.8.0"
-  sha256 "45ff5c08e573b925694d9ba52c69b4913bc9a906ecf713ad3039b87e4f026790"
+  version "0.8.6"
+  sha256 "5bab3ff7eccc4ac90c20ac3f876f4fb6b3dbf32b820ff0e4d09a2d7e56365780"
 
   url "https://github.com/jonaprieto/strata-files/releases/download/fork-#{version}/Strata-#{version}.zip"
   name "Strata Files"
