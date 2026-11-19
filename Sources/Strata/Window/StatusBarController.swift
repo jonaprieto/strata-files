@@ -21,7 +21,8 @@ final class StatusBarController: NSSplitViewItemAccessoryViewController {
         status.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(status)
         NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalToConstant: 28),
+            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 28),
+            { let usual = container.heightAnchor.constraint(equalToConstant: 28); usual.priority = .defaultLow; return usual }(),
             status.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             status.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             status.topAnchor.constraint(equalTo: container.topAnchor),
@@ -30,8 +31,11 @@ final class StatusBarController: NSSplitViewItemAccessoryViewController {
         view = container
     }
 
-    var text: String {
-        get { status.label.stringValue }
-        set { status.label.stringValue = newValue }
+    /// Lines break between the details, never inside one ("5 items", a branch's state).
+    var text = "" {
+        didSet {
+            status.label.stringValue = text.components(separatedBy: " · ")
+                .map { $0.replacingOccurrences(of: " ", with: "\u{00A0}") }.joined(separator: " · ")
+        }
     }
 }

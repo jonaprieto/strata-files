@@ -314,10 +314,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         refreshPanels()
     }
 
+    /// Each pane shows its own address bar: in dual pane when chosen, and in a window too narrow for the toolbar's.
+    var panesShowAddressBars: Bool { isNarrow || isDualPane && services.preferences.dualPaneAddressBars }
+
+    private var isNarrow: Bool { (window?.frame.width ?? .infinity) < 450 }
+
     func updateHeaders() {
-        let dualAddressBars = isDualPane && services.preferences.dualPaneAddressBars
-        if dualAddressBars, pathBar.isEditing { pathBar.cancelEditing() }
-        toolbarItems.pathBar?.isHidden = dualAddressBars
+        showsNarrowHeaders = isNarrow
+        if panesShowAddressBars, pathBar.isEditing { pathBar.cancelEditing() }
+        toolbarItems.pathBar?.isHidden = panesShowAddressBars
         for p in panes { syncPathBar(p.host.pathBar, for: p) }
         showHeaderTitles()
     }
@@ -325,8 +330,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
     private func showHeaderTitles() {
         for p in panes {
             let title = p.title
-            p.host.setHeader(visible: isDualPane, title: title.text, symbol: title.symbol, active: p === pane,
-                             showsPathBar: services.preferences.dualPaneAddressBars)
+            p.host.setHeader(visible: isDualPane || isNarrow, title: title.text, symbol: title.symbol, active: p === pane,
+                             showsPathBar: isNarrow || services.preferences.dualPaneAddressBars)
         }
     }
 
@@ -580,7 +585,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
     @objc func goTrash(_ sender: Any?) { navigate(to: Trash.home) }
     func showDuplicates() { go(.duplicates) }
     @objc func goToFolder(_ sender: Any?) {
-        if isDualPane && services.preferences.dualPaneAddressBars {
+        if panesShowAddressBars {
             pane.host.pathBar.beginEditing()
         } else {
             revealToolbarItem(.pathBar)
@@ -669,11 +674,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - Window
 
     private var remembersWindowFrame = false
+    private var showsNarrowHeaders = false
 
     func windowDidMove(_ notification: Notification) { rememberWindowFrame() }
 
     func windowDidResize(_ notification: Notification) {
         if let window { pathBar.fit(windowWidth: window.frame.width) }
+        if isNarrow != showsNarrowHeaders { updateHeaders() }
         rememberWindowFrame()
     }
 
