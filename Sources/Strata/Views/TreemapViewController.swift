@@ -600,14 +600,16 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
     }
 
     /// Moves to the nearest tile in a direction, measured from the current tile's center.
-    private func moveSelection(dx: CGFloat, dy: CGFloat) {
+    /// False when no tile lies that way.
+    @discardableResult
+    func moveSelection(dx: CGFloat, dy: CGFloat) -> Bool {
         let candidates = tiles.filter { $0.item != nil }
-        guard !candidates.isEmpty else { return }
+        guard !candidates.isEmpty else { return false }
         guard let currentKey = selectedKeys.first, let current = tile(forKey: currentKey) else {
             selectedKeys = [candidates[0].key]
             needsDisplay = true
             controller?.selectionChanged()
-            return
+            return true
         }
         let origin = CGPoint(x: current.frame.midX, y: current.frame.midY)
         var best: (TreemapTile, CGFloat)?
@@ -619,10 +621,11 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
             let score = along + across * 2
             if best.map({ score < $0.1 }) ?? true { best = (tile, score) }
         }
-        guard let next = best?.0 else { return }
+        guard let next = best?.0 else { return false }
         selectedKeys = [next.key]
         needsDisplay = true
         controller?.selectionChanged()
+        return true
     }
 
     override func becomeFirstResponder() -> Bool {
