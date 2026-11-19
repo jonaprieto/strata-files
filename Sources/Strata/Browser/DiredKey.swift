@@ -4,6 +4,8 @@ enum DiredKey {
     case up
     case left
     case right
+    /// H, J, K and L: the same moves, adding to the selection.
+    indirect case extend(DiredKey)
     case filter
     case run(StrataCommand)
 
@@ -13,6 +15,10 @@ enum DiredKey {
         case "p", "k": self = .up
         case "h": self = .left
         case "l": self = .right
+        case "H": self = .extend(.left)
+        case "J": self = .extend(.down)
+        case "K": self = .extend(.up)
+        case "L": self = .extend(.right)
         case "/": self = .filter
         case "f": self = .run(.openSelection)
         case "^": self = .run(.goToEnclosingFolder)

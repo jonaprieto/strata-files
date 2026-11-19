@@ -11701,6 +11701,13 @@
     "tests": "DiredKeysTests/lettersFilterWhileDiredKeysAreOff"
   },
   {
+    "file": "Strata/Views/TreemapViewController.swift",
+    "find": "if extending { selectedKeys.insert(next.key) } else { selectedKeys = [next.key] }",
+    "replace": "selectedKeys = [next.key]",
+    "rule": "Disk Usage: Shift moves replace the selection, so D trashes only the last tile",
+    "tests": "DiredKeysTests/diskUsageTakesDAndShiftMovesFromItsKeyboard"
+  },
+  {
     "file": "Strata/Window/BrowserWindowController+BrowserDelegate.swift",
     "find": "guard browser === self.browser, validateCommand(command, item: item), let target",
     "replace": "guard validateCommand(command, item: item), let target",
