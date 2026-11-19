@@ -148,6 +148,32 @@ import Testing
         #expect(tree.snapshot() == ["inside/", "inside/a"])
     }
 
+    @Test func hjklMoveBetweenDiskUsageTiles() async throws {
+        let tree = try TestTree("big", "small")
+        try Data(count: 64_000).write(to: tree.url("big"))
+        try Data(count: 16_000).write(to: tree.url("small"))
+        let environment = try IndependentEnvironment()
+        let owner = await window(at: tree.root, environment)
+        defer { close(owner) }
+        let window = try #require(owner.window)
+        owner.browser.setMode(.treemap, remember: false)
+        let map = try #require(owner.browser.presentations.treemapController).treemapView
+        try await until { [tree.url("big"), tree.url("small")].allSatisfy { map.tile(forKey: $0.fileViewKey) != nil } }
+        let big = try #require(map.frame(forKey: tree.url("big").fileViewKey))
+        let small = try #require(map.frame(forKey: tree.url("small").fileViewKey))
+        window.makeFirstResponder(map)
+        owner.browser.select([tree.url("big")])
+        try #require(small.midX > big.midX)
+
+        _ = owner.browser.handle(.type("l"))
+        #expect(owner.browser.selectedURLs == [tree.url("small")])
+        _ = owner.browser.handle(.type("h"))
+        #expect(owner.browser.selectedURLs == [tree.url("big")])
+        #expect(owner.browser.directory?.lastPathComponent == tree.root.lastPathComponent)
+        withExtendedLifetime(environment) {}
+        #expect(tree.snapshot() == ["big", "small"])
+    }
+
     @Test func slashStartsAFilterAndEscapeTakesItBack() async throws {
         let tree = try TestTree("a", "ad")
         let environment = try IndependentEnvironment()

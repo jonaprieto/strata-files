@@ -233,7 +233,7 @@ extension BrowserViewController: FileCollectionViewDelegate {
     }
 
     /// In a list, h and l leave and enter folders instead, as sideways would only fold rows.
-    private var movesSideways: Bool { [.grid, .columns, .gallery].contains(effectiveMode) }
+    private var movesSideways: Bool { [.grid, .columns, .gallery, .treemap].contains(effectiveMode) }
 
     /// Goes to the view holding the keyboard, which moves through its items its own way (a deeper column, a grid).
     private func pressArrow(_ key: UInt16, _ function: Int) {
