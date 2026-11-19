@@ -672,7 +672,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
 
     func windowDidMove(_ notification: Notification) { rememberWindowFrame() }
 
-    func windowDidResize(_ notification: Notification) { rememberWindowFrame() }
+    func windowDidResize(_ notification: Notification) {
+        if let window { pathBar.fit(windowWidth: window.frame.width) }
+        rememberWindowFrame()
+    }
 
     private func rememberWindowFrame() {
         guard remembersWindowFrame, !isClosed, let window else { return }

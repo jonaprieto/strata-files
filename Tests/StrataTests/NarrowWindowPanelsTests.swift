@@ -44,6 +44,30 @@ import Testing
         #expect(tree.snapshot() == ["a"])
     }
 
+    @Test func aNarrowWindowKeepsTheLocationAndBothPanelButtons() async throws {
+        let tree = try TestTree("a")
+        let environment = try IndependentEnvironment()
+        let owner = BrowserWindowController(location: tree.root, services: environment.services)
+        owner.window?.setFrameAutosaveName("")
+        owner.split.splitView.autosaveName = nil
+        defer {
+            owner.window?.contentViewController = nil
+            owner.panes.forEach { $0.stopBackgroundWork() }
+        }
+        let window = try #require(owner.window)
+        let toolbar = try #require(window.toolbar)
+        toolbar.itemIdentifiers = BrowserToolbar.defaults
+        for id in [NSToolbarItem.Identifier.toggleSidebar, .toggleInspector] {
+            #expect(toolbar.items.first { $0.itemIdentifier == id }?.visibilityPriority == .high)
+        }
+        window.setContentSize(NSSize(width: 450, height: 700))
+        window.contentView?.superview?.layoutSubtreeIfNeeded()
+        #expect(owner.pathBar.window === window)
+        #expect(toolbar.visibleItems?.contains { $0.itemIdentifier == .pathBar } == true)
+        withExtendedLifetime(environment) {}
+        #expect(tree.snapshot() == ["a"])
+    }
+
     @Test func bAndShiftBToggleTheSidebarAndInspectorAndIGetsInfo() {
         #expect(StrataCommand.toggleSidebar.key == "b" && StrataCommand.toggleSidebar.modifiers == .command)
         #expect(StrataCommand.toggleInspector.key == "b" && StrataCommand.toggleInspector.modifiers == [.command, .shift])

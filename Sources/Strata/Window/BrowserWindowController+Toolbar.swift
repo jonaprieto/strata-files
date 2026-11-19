@@ -25,6 +25,13 @@ extension BrowserWindowController: NSToolbarDelegate, NSToolbarItemValidation {
         }
     }
 
+    /// The two panel buttons outlast the others in a narrow window, which hides both panels and needs a way back.
+    func toolbarWillAddItem(_ notification: Notification) {
+        guard let item = notification.userInfo?["item"] as? NSToolbarItem,
+              [.toggleSidebar, .toggleInspector].contains(item.itemIdentifier) else { return }
+        item.visibilityPriority = .high
+    }
+
     func validateToolbarItem(_ item: NSToolbarItem) -> Bool {
         if let command = BrowserToolbar.command(item.itemIdentifier) {
             showToggleState(item, command)
