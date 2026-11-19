@@ -100,7 +100,7 @@ extension BrowserWindowController: NSToolbarDelegate, NSToolbarItemValidation {
         item.image = NSImage(systemSymbolName: "folder", accessibilityDescription: item.label)
         if flag {
             item.view = pathBar
-            item.isHidden = isDualPane && services.preferences.dualPaneAddressBars
+            item.isHidden = panesShowAddressBars
             toolbarItems.adopt(item)
         }
         item.visibilityPriority = .high
