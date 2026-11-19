@@ -122,5 +122,57 @@ final class MainSplitViewController: NSSplitViewController, ThemeSplitWindowCont
     override func viewDidLoad() {
         super.viewDidLoad()
         splitView.autosaveName = "StrataMainSplit"
+        narrowPanels = [NarrowPanel(item: inspectorItem, below: 900), NarrowPanel(item: splitViewItems[0], below: 700)]
+        for panel in narrowPanels {
+            panel.observation = panel.item.observe(\.isCollapsed) { [weak self, weak panel] _, _ in
+                MainActor.assumeIsolated {
+                    guard let self, let panel, !self.fittingPanels else { return }
+                    panel.shownWhileNarrow = !panel.item.isCollapsed && self.view.bounds.width < panel.below
+                    panel.hiddenForWidth = false
+                }
+            }
+        }
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        fitPanels()
+    }
+
+    /// Below its width a window hides the panel; showing it there keeps it until the window is wide again, and a
+    /// panel hidden for the width comes back then.
+    private final class NarrowPanel {
+        let item: NSSplitViewItem
+        let below: CGFloat
+        var hiddenForWidth = false
+        var shownWhileNarrow = false
+        var observation: NSKeyValueObservation?
+
+        init(item: NSSplitViewItem, below: CGFloat) {
+            self.item = item
+            self.below = below
+        }
+    }
+
+    private var narrowPanels: [NarrowPanel] = []
+    private var fittingPanels = false
+
+    private func fitPanels() {
+        let width = view.bounds.width
+        guard width > 0, !fittingPanels else { return }
+        fittingPanels = true
+        defer { fittingPanels = false }
+        for panel in narrowPanels {
+            if width < panel.below {
+                guard !panel.item.isCollapsed, !panel.shownWhileNarrow else { continue }
+                panel.hiddenForWidth = true
+                panel.item.isCollapsed = true
+            } else {
+                panel.shownWhileNarrow = false
+                guard panel.hiddenForWidth else { continue }
+                panel.hiddenForWidth = false
+                panel.item.isCollapsed = false
+            }
+        }
     }
 }
