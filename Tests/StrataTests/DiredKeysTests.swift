@@ -174,6 +174,30 @@ import Testing
         #expect(tree.snapshot() == ["big", "small"])
     }
 
+    @Test func hAndKPastTheEdgeOfDiskUsageGoToTheEnclosingFolder() async throws {
+        for letter in ["h", "k"] {
+            let tree = try TestTree("inside/", "inside/big", "inside/small")
+            try Data(count: 64_000).write(to: tree.url("inside/big"))
+            try Data(count: 16_000).write(to: tree.url("inside/small"))
+            let environment = try IndependentEnvironment()
+            let owner = await window(at: tree.url("inside"), environment)
+            defer { close(owner) }
+            owner.browser.setMode(.treemap, remember: false)
+            let map = try #require(owner.browser.presentations.treemapController).treemapView
+            try await until { map.tile(forKey: tree.url("inside/big").fileViewKey) != nil }
+            let big = try #require(map.frame(forKey: tree.url("inside/big").fileViewKey))
+            let small = try #require(map.frame(forKey: tree.url("inside/small").fileViewKey))
+            try #require(big.midX < small.midX && big.minY <= small.minY + 1)
+            owner.window?.makeFirstResponder(map)
+            owner.browser.select([tree.url("inside/big")])
+
+            _ = owner.browser.handle(.type(letter))
+            try await until { owner.browser.directory?.lastPathComponent == tree.root.lastPathComponent }
+            withExtendedLifetime(environment) {}
+            #expect(tree.snapshot() == ["inside/", "inside/big", "inside/small"])
+        }
+    }
+
     @Test func slashStartsAFilterAndEscapeTakesItBack() async throws {
         let tree = try TestTree("a", "ad")
         let environment = try IndependentEnvironment()

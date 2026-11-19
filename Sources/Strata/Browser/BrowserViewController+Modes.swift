@@ -223,13 +223,22 @@ extension BrowserViewController: FileCollectionViewDelegate {
     private func runDiredKey(_ text: String) {
         switch DiredKey(text) {
         case .down: pressArrow(KeyCode.downArrow, NSDownArrowFunctionKey)
-        case .up: pressArrow(KeyCode.upArrow, NSUpArrowFunctionKey)
-        case .left: movesSideways ? pressArrow(KeyCode.leftArrow, NSLeftArrowFunctionKey) : delegate?.browser(self, run: .goToEnclosingFolder)
+        case .up: if !climbsDiskUsage(dx: 0, dy: -1) { pressArrow(KeyCode.upArrow, NSUpArrowFunctionKey) }
+        case .left:
+            if climbsDiskUsage(dx: -1, dy: 0) { break }
+            movesSideways ? pressArrow(KeyCode.leftArrow, NSLeftArrowFunctionKey) : delegate?.browser(self, run: .goToEnclosingFolder)
         case .right: movesSideways ? pressArrow(KeyCode.rightArrow, NSRightArrowFunctionKey) : delegate?.browser(self, run: .openSelection)
         case .filter: filtering.awaitsText = true
         case .run(let command): delegate?.browser(self, run: command)
         case nil: break
         }
+    }
+
+    /// In Disk Usage, h and k move between tiles and, with no tile left or above, go to the enclosing folder.
+    private func climbsDiskUsage(dx: CGFloat, dy: CGFloat) -> Bool {
+        guard effectiveMode == .treemap, let map = presentations.treemapController?.treemapView else { return false }
+        if !map.moveSelection(dx: dx, dy: dy) { delegate?.browser(self, run: .goToEnclosingFolder) }
+        return true
     }
 
     /// In a list, h and l leave and enter folders instead, as sideways would only fold rows.
