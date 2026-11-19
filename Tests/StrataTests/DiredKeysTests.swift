@@ -108,6 +108,25 @@ import Testing
         #expect(tree.snapshot() == ["a", "b"])
     }
 
+    @Test func capitalJAndKAddToTheSelectionInAList() async throws {
+        let tree = try TestTree("a", "b", "c")
+        let environment = try IndependentEnvironment()
+        let owner = await window(at: tree.root, environment)
+        defer { close(owner) }
+        let browser = owner.browser
+        browser.setMode(.list, remember: false)
+        owner.window?.makeFirstResponder(browser.outlineView)
+        browser.select([tree.url("a")])
+
+        _ = browser.handle(.type("J"))
+        _ = browser.handle(.type("J"))
+        #expect(browser.selectedURLs == [tree.url("a"), tree.url("b"), tree.url("c")])
+        _ = browser.handle(.type("K"))
+        #expect(browser.selectedURLs == [tree.url("a"), tree.url("b")])
+        withExtendedLifetime(environment) {}
+        #expect(tree.snapshot() == ["a", "b", "c"])
+    }
+
     @Test func hAndLLeaveAndEnterFoldersInAList() async throws {
         let tree = try TestTree("inside/", "inside/a")
         let environment = try IndependentEnvironment()
@@ -196,6 +215,46 @@ import Testing
             withExtendedLifetime(environment) {}
             #expect(tree.snapshot() == ["inside/", "inside/big", "inside/small"])
         }
+    }
+
+    @Test func diskUsageTakesDAndShiftMovesFromItsKeyboard() async throws {
+        let tree = try TestTree("big", "small", "smaller")
+        try Data(count: 64_000).write(to: tree.url("big"))
+        try Data(count: 32_000).write(to: tree.url("small"))
+        try Data(count: 16_000).write(to: tree.url("smaller"))
+        let environment = try IndependentEnvironment()
+        let owner = await window(at: tree.root, environment)
+        defer {
+            tree.removeFromTrash(history: environment.services.transfers.history)
+            close(owner)
+        }
+        owner.browser.setMode(.treemap, remember: false)
+        let map = try #require(owner.browser.presentations.treemapController).treemapView
+        let names = ["big", "small", "smaller"]
+        try await until { names.allSatisfy { map.tile(forKey: tree.url($0).fileViewKey) != nil } }
+        owner.window?.makeFirstResponder(map)
+        owner.browser.select([tree.url("big")])
+        func press(_ characters: String, keyCode: UInt16 = 0, _ modifiers: NSEvent.ModifierFlags = []) throws {
+            let event = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
+                                                      windowNumber: 0, context: nil, characters: characters,
+                                                      charactersIgnoringModifiers: characters, isARepeat: false, keyCode: keyCode))
+            map.keyDown(with: event)
+        }
+        let big = try #require(map.frame(forKey: tree.url("big").fileViewKey))
+        let small = try #require(map.frame(forKey: tree.url("small").fileViewKey))
+        let right = String(Character(try #require(UnicodeScalar(NSRightArrowFunctionKey))))
+        try #require(small.midX > big.midX)
+
+        try press(right, keyCode: KeyCode.rightArrow, [.shift, .function, .numericPad])
+        #expect(Set(owner.browser.selectedURLs) == [tree.url("big"), tree.url("small")])
+        try press("L", [.shift])
+        #expect(owner.browser.selectedURLs.count >= 2)
+        owner.browser.select([tree.url("small")])
+        try press("D", [.shift])
+        try await until { !tree.snapshot().contains("small") }
+        try await until { map.tile(forKey: tree.url("small").fileViewKey) == nil }
+        #expect(tree.snapshot() == ["big", "smaller"])
+        withExtendedLifetime(environment) {}
     }
 
     @Test func slashStartsAFilterAndEscapeTakesItBack() async throws {

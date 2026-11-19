@@ -514,6 +514,7 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
         mouseDownPoint = point
         let hit = tile(at: point)
         mouseDownTile = hit
+        focusKey = hit?.item == nil ? nil : hit?.key
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if let hit, hit.item != nil {
             if mods.contains(.command) {
@@ -572,11 +573,12 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
     override func keyDown(with event: NSEvent) {
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let plain = mods.isDisjoint(with: [.command, .control])
+        let extend = mods.contains(.shift)
         switch event.keyCode {
-        case KeyCode.leftArrow where plain: moveSelection(dx: -1, dy: 0); return
-        case KeyCode.rightArrow where plain: moveSelection(dx: 1, dy: 0); return
-        case KeyCode.downArrow where plain: moveSelection(dx: 0, dy: 1); return
-        case KeyCode.upArrow where plain: moveSelection(dx: 0, dy: -1); return
+        case KeyCode.leftArrow where plain: moveSelection(dx: -1, dy: 0, extending: extend); return
+        case KeyCode.rightArrow where plain: moveSelection(dx: 1, dy: 0, extending: extend); return
+        case KeyCode.downArrow where plain: moveSelection(dx: 0, dy: 1, extending: extend); return
+        case KeyCode.upArrow where plain: moveSelection(dx: 0, dy: -1, extending: extend); return
         default: break
         }
         if let key = FileViewKey.from(event) {
@@ -600,13 +602,18 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
     }
 
     /// Moves to the nearest tile in a direction, measured from the current tile's center.
-    /// False when no tile lies that way.
+    /// Where keyboard moves start: the tile last moved to or clicked, while it stays selected.
+    private var focusKey: String?
+
+    /// False when no tile lies that way. Extending adds the next tile to the selection instead of replacing it.
     @discardableResult
-    func moveSelection(dx: CGFloat, dy: CGFloat) -> Bool {
+    func moveSelection(dx: CGFloat, dy: CGFloat, extending: Bool = false) -> Bool {
         let candidates = tiles.filter { $0.item != nil }
         guard !candidates.isEmpty else { return false }
-        guard let currentKey = selectedKeys.first, let current = tile(forKey: currentKey) else {
+        let currentKey = focusKey.flatMap { selectedKeys.contains($0) ? $0 : nil } ?? selectedKeys.sorted().first
+        guard let currentKey, let current = tile(forKey: currentKey) else {
             selectedKeys = [candidates[0].key]
+            focusKey = candidates[0].key
             needsDisplay = true
             controller?.selectionChanged()
             return true
@@ -622,7 +629,8 @@ final class TreemapView: NSView, NSViewToolTipOwner, NSDraggingSource {
             if best.map({ score < $0.1 }) ?? true { best = (tile, score) }
         }
         guard let next = best?.0 else { return false }
-        selectedKeys = [next.key]
+        if extending { selectedKeys.insert(next.key) } else { selectedKeys = [next.key] }
+        focusKey = next.key
         needsDisplay = true
         controller?.selectionChanged()
         return true

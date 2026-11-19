@@ -228,9 +228,25 @@ extension BrowserViewController: FileCollectionViewDelegate {
             if climbsDiskUsage(dx: -1, dy: 0) { break }
             movesSideways ? pressArrow(KeyCode.leftArrow, NSLeftArrowFunctionKey) : delegate?.browser(self, run: .goToEnclosingFolder)
         case .right: movesSideways ? pressArrow(KeyCode.rightArrow, NSRightArrowFunctionKey) : delegate?.browser(self, run: .openSelection)
+        case .extend(let move): extendSelection(move)
         case .filter: filtering.awaitsText = true
         case .run(let command): delegate?.browser(self, run: command)
         case nil: break
+        }
+    }
+
+    /// Shift and an arrow, as the view holding the keyboard takes it; a list has no sideways selection.
+    private func extendSelection(_ move: DiredKey) {
+        let (dx, dy, key, function): (CGFloat, CGFloat, UInt16, Int) = switch move {
+        case .left: (-1, 0, KeyCode.leftArrow, NSLeftArrowFunctionKey)
+        case .right: (1, 0, KeyCode.rightArrow, NSRightArrowFunctionKey)
+        case .up: (0, -1, KeyCode.upArrow, NSUpArrowFunctionKey)
+        default: (0, 1, KeyCode.downArrow, NSDownArrowFunctionKey)
+        }
+        if effectiveMode == .treemap, let map = presentations.treemapController?.treemapView {
+            map.moveSelection(dx: dx, dy: dy, extending: true)
+        } else if dx == 0 || movesSideways {
+            pressArrow(key, function, extending: true)
         }
     }
 
@@ -245,10 +261,11 @@ extension BrowserViewController: FileCollectionViewDelegate {
     private var movesSideways: Bool { [.grid, .columns, .gallery, .treemap].contains(effectiveMode) }
 
     /// Goes to the view holding the keyboard, which moves through its items its own way (a deeper column, a grid).
-    private func pressArrow(_ key: UInt16, _ function: Int) {
+    private func pressArrow(_ key: UInt16, _ function: Int, extending: Bool = false) {
         guard let window = view.window, let scalar = UnicodeScalar(function) else { return }
         let arrow = String(Character(scalar))
-        guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.function, .numericPad],
+        let modifiers: NSEvent.ModifierFlags = extending ? [.function, .numericPad, .shift] : [.function, .numericPad]
+        guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: modifiers,
                                            timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: arrow,
                                            charactersIgnoringModifiers: arrow, isARepeat: false, keyCode: key) else { return }
         window.firstResponder?.keyDown(with: event)
