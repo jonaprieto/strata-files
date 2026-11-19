@@ -44,6 +44,14 @@ final class PathBar: NSView, NSTextFieldDelegate {
 
     var editorField: NSTextField { field }
 
+    private lazy var minimumWidth = widthAnchor.constraint(greaterThanOrEqualToConstant: 200)
+
+    /// AppKit narrows the bar to its minimum before items overflow, so the minimum stays roomy in a wide window and
+    /// drops in a narrow one, where the bar would otherwise be the first to go.
+    func fit(windowWidth: CGFloat) {
+        minimumWidth.constant = windowWidth < 600 ? 120 : 200
+    }
+
     var crumbButtons: [CrumbButton] { crumbs.buttons }
 
     init(frame: NSRect = .zero, preferences: Prefs, places: PlaceChecks, index: FileIndex, copies: CopyProviders,
@@ -107,7 +115,7 @@ final class PathBar: NSView, NSTextFieldDelegate {
             preferred.priority = Self.toolbarSizingPriority
             constraints += [
                 heightAnchor.constraint(equalToConstant: 32),
-                widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+                minimumWidth,
                 widthAnchor.constraint(lessThanOrEqualToConstant: 720),
                 preferred,
             ]
