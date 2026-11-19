@@ -47,6 +47,7 @@ enum MainMenu {
             StrataCommand.addToSidebar.menuItem(),
             .separator(),
             StrataCommand.toggleQuickLook.menuItem(),
+            StrataCommand.getInfo.menuItem(),
             StrataCommand.renameSelection.menuItem(),
             StrataCommand.editTags.menuItem(),
             StrataCommand.compress.menuItem(),
