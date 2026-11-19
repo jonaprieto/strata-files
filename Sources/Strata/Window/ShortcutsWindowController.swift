@@ -99,7 +99,8 @@ final class ShortcutsWindowController: NSWindowController, NSSearchFieldDelegate
         ]),
         (diredTitle, [
             Shortcut(keys: ["n", "p"], action: "Down, up (also j, k)"),
-            Shortcut(keys: ["h", "l"], action: "Enclosing folder, open (in Columns and Icons: left, right)"),
+            Shortcut(keys: ["h", "l"], action: "Enclosing folder, open in List; left, right in other views"),
+            Shortcut(keys: ["H", "J", "K", "L"], action: "Add to the selection while moving"),
             Shortcut(keys: ["f"], action: "Open"),
             Shortcut(keys: ["^"], action: "Enclosing folder"),
             Shortcut(keys: ["/"], action: "Filter by typing"),
