@@ -77,6 +77,8 @@ import Quartz
         if present {
             if let panel {
                 guard presentPanel(panel, browser.focusView) else { return close() }
+                // AppKit focuses the search field when the panel first shows; the preview opens with nothing focused.
+                panel.makeFirstResponder(nil)
             }
         }
     }

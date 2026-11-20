@@ -110,6 +110,29 @@ struct PreviewInteractionTests {
         withExtendedLifetime(environment) {}
     }
 
+    @Test func spaceOpensThePreviewWithoutTypingIntoItsSearchField() async throws {
+        let tree = try TestTree("folder/readme.md")
+        let environment = try PreviewEnvironment(tree)
+        let before = tree.snapshot()
+        let browser = BrowserViewController(services: environment.services)
+        _ = browser.view
+        // AppKit focuses a window's first text field the first time it's shown: the preview's search field.
+        let coordinator = PreviewCoordinator(preferences: environment.preferences, directories: environment.services.directories,
+                                             copies: environment.services.copies, thumbnails: environment.services.thumbnails,
+                                             clipboard: environment.services.clipboard, openFile: { _ in },
+                                             presentPanel: { panel, _ in
+            let search = (panel.contentViewController as? PreviewBrowserController)?.controls.search
+            return panel.makeFirstResponder(search)
+        })
+        coordinator.show(try #require(FileEntry(url: tree.url("folder/readme.md"))), from: browser)
+        let panel = try #require(coordinator.panel)
+        let search = try #require(coordinator.content?.controls.search)
+        #expect(panel.firstResponder !== search && (panel.firstResponder as? NSText)?.delegate !== search)
+        coordinator.close()
+        #expect(tree.snapshot() == before)
+        withExtendedLifetime(environment) {}
+    }
+
     @Test func arrowKeysInQuickLookNavigateTheBrowserPastFoldersUnlessTheContainerTreeIsFocused() async throws {
         let tree = try TestTree("root/a.txt", "root/middle/first.txt", "root/middle/second.txt", "root/z.txt")
         let environment = try PreviewEnvironment(tree)
