@@ -59,4 +59,6 @@ struct UpdatesSection: View {
 extension Bundle {
     /// "0.2.0".
     var shortVersion: String { object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?" }
+    /// The commit `scripts/build.sh` built from ("fork-0.8.7-1-gdb5a2816"); nil outside a built app.
+    var buildStamp: String? { object(forInfoDictionaryKey: "StrataBuild") as? String }
 }

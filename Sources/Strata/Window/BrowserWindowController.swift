@@ -795,12 +795,21 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate {
         if case .scanning(let items) = services.index.phase {
             status += (status.isEmpty ? "" : "  ·  ") + String(localized: "Indexing \(items) items…", comment: "plural")
         }
-        split.status.text = status
+        split.status.text = Self.stamped(status)
         split.status.details = browser.volumeSpaceDescription
         updateGitHistory()
         // Two panes: each shows its own counts under its list; the shared bar would sit across both.
         split.status.isHidden = isDualPane
-        for p in panes { p.host.setStatus(isDualPane ? p.browser.statusText : nil, details: p.browser.volumeSpaceDescription) }
+        for p in panes {
+            let text = p === panes.last ? Self.stamped(p.browser.statusText) : p.browser.statusText
+            p.host.setStatus(isDualPane ? text : nil, details: p.browser.volumeSpaceDescription)
+        }
+    }
+
+    /// The build Strata runs, last in the status bar, so an old copy still running is easy to spot.
+    private static func stamped(_ status: String) -> String {
+        guard let stamp = Bundle.main.buildStamp else { return status }
+        return status.isEmpty ? stamp : status + "  ·  " + stamp
     }
 
     private func refreshInspector() {

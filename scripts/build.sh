@@ -62,6 +62,10 @@ fi
 if [[ -n "${STRATA_BUILD_NUMBER:-}" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $STRATA_BUILD_NUMBER" "$app/Contents/Info.plist"
 fi
+# Which commit this is, shown in the status bar ("fork-0.8.7-1-gdb5a2816-dirty"): a version alone can't tell builds apart.
+if build_stamp=$(git describe --tags --always --dirty 2>/dev/null); then
+  /usr/libexec/PlistBuddy -c "Add :StrataBuild string $build_stamp" "$app/Contents/Info.plist"
+fi
 python3 scripts/build-icon.py "$app/Contents/Resources" "$app/Contents/Info.plist"
 
 # Translations: every Localization/<code>.json becomes <code>.lproj (untranslated strings fall back to English), and
